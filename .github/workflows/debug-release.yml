@@ -1,0 +1,124 @@
+name: Debug release
+
+# Publishes an unsigned Tizen WGT and a webOS IPK to the debug update channel, so a build can be
+# put on a TV the day the work lands rather than at the end of a phase.
+#
+# The channel is GitHub **prereleases** tagged `debug-v*`. `js/core/update/appUpdateService.js`
+# reads `/releases/latest` and rejects `draft` and `prerelease`, so the two lines cannot see each
+# other and the release flow is untouched. This mirrors `nuvio-z/.github/workflows/debug-release.yml`.
+#
+# The counter lives in `debug-version.properties`, not in `package.json` - see the note in that
+# file. Bump it in the same commit as the work being tested, then dispatch this.
+#
+# ⚠ Unsigned on purpose. `package:tizen` builds the development package with JSZip and needs no
+# Tizen SDK; only `package:tizen:store` needs a signing profile, and the store profile also strips
+# EngineFS. A debug build wants the opposite of both.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: debug-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Build and publish debug TV packages
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Resolve debug version
+        id: version
+        run: |
+          set -euo pipefail
+          APP_VERSION=$(node -p "require('./package.json').version")
+          DEBUG_BUILD=$(sed -n 's/^DEBUG_BUILD=\([0-9][0-9]*\)$/\1/p' debug-version.properties | tail -n 1)
+          if [ -z "$DEBUG_BUILD" ]; then
+            echo "::error::DEBUG_BUILD is missing or not a number in debug-version.properties"
+            exit 1
+          fi
+          TAG_NAME="debug-v${APP_VERSION}.${DEBUG_BUILD}"
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "Building $TAG_NAME"
+
+      # Optional, unlike the release workflow. A fork has no secrets, and a debug build with blank
+      # keys is still worth putting on a TV - addon streams and source selection do not need them.
+      # What breaks is TMDB metadata, account sync and QR sign-in, so say so rather than failing.
+      - name: Write local properties
+        env:
+          NUVIO_LOCAL_PROPERTIES: ${{ secrets.NUVIO_LOCAL_PROPERTIES }}
+        run: |
+          if [ -z "${NUVIO_LOCAL_PROPERTIES//[[:space:]]/}" ]; then
+            echo "::warning::NUVIO_LOCAL_PROPERTIES is not set. Building against local.example.properties - TMDB metadata, account sync and QR sign-in will be unavailable in this build."
+          else
+            printf '%s\n' "$NUVIO_LOCAL_PROPERTIES" > local.properties
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run the pure suites
+        run: npm test
+
+      - name: Package unsigned Tizen WGT
+        run: npm run package:tizen
+
+      - name: Package webOS IPK
+        run: npm run package:webos
+
+      - name: Normalize package names
+        id: package
+        env:
+          TAG_NAME: ${{ steps.version.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          set -- NuvioTV001_*.wgt
+          if [ ! -e "$1" ]; then
+            echo "::error::Expected Tizen package was not created"
+            exit 1
+          fi
+          mv "$1" "NuvioTV-Tizen-${TAG_NAME}.wgt"
+
+          set -- space.nuvio.webos_*_all.ipk
+          if [ ! -e "$1" ]; then
+            echo "::error::Expected webOS package was not created"
+            exit 1
+          fi
+          mv "$1" "NuvioTV-webOS-${TAG_NAME}.ipk"
+
+          echo "tizen_package=NuvioTV-Tizen-${TAG_NAME}.wgt" >> "$GITHUB_OUTPUT"
+          echo "webos_package=NuvioTV-webOS-${TAG_NAME}.ipk" >> "$GITHUB_OUTPUT"
+
+      - name: Publish debug prerelease
+        env:
+          TAG_NAME: ${{ steps.version.outputs.tag_name }}
+          TIZEN_PACKAGE: ${{ steps.package.outputs.tizen_package }}
+          WEBOS_PACKAGE: ${{ steps.package.outputs.webos_package }}
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists; replacing its assets."
+            gh release upload "$TAG_NAME" "$TIZEN_PACKAGE" "$WEBOS_PACKAGE" --clobber
+          else
+            gh release create "$TAG_NAME" \
+              --prerelease \
+              --title "$TAG_NAME" \
+              --notes "Debug build from \`${GITHUB_REF_NAME}\` at \`${GITHUB_SHA}\`.
+
+          Unsigned Tizen WGT and webOS IPK, for sideloading only. This is a prerelease, so the in-app updater on the release channel does not see it." \
+              "$TIZEN_PACKAGE" "$WEBOS_PACKAGE"
+          fi
