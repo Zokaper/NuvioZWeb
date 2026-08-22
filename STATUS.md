@@ -2,15 +2,15 @@
 
 Last updated: 2026-08-22
 
-|                      |                                                                                                                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/playback-modes-web`                                                                                                                                                                                               |
-| Version in the files | `0.3.37` (`package.json`, synced into `appinfo.json` by `scripts/appMetadata.mjs`)                                                                                                                                        |
-| Debug counter        | `DEBUG_BUILD=1` in `debug-version.properties` - **never dispatched**, so no `debug-v*` prerelease exists yet                                                                                                              |
-| Forked from          | `NuvioMedia/NuvioWeb` at `0c3bafc` (`chore: finalize TV store scope and remove tests`, 2026-08-22)                                                                                                                        |
-| Current work         | the **playback-modes port** from `nuvio-z` - see `PLAYBACK_MODES_WEB_PLAN.md`                                                                                                                                             |
-| Verified             | `npm test` **150 tests, zero failures**; `npm run build` green; `npm run format:check` clean; both package globs build locally                                                                                            |
-| **Not** verified     | **nothing from the port has run in the app, let alone on a television.** No screen imports any of it yet. The debug workflow has never been dispatched, so its YAML is unproven beyond a local build of the same commands |
+|                      |                                                                                                                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/playback-modes-web`                                                                                                                                                                                                                                                     |
+| Version in the files | `0.3.37` (`package.json`, synced into `appinfo.json` by `scripts/appMetadata.mjs`)                                                                                                                                                                                              |
+| Debug counter        | `DEBUG_BUILD=2` in `debug-version.properties` - **never dispatched**, so no `debug-v*` prerelease exists yet                                                                                                                                                                    |
+| Forked from          | `NuvioMedia/NuvioWeb` at `0c3bafc` (`chore: finalize TV store scope and remove tests`, 2026-08-22)                                                                                                                                                                              |
+| Current work         | the **playback-modes port** from `nuvio-z` - see `PLAYBACK_MODES_WEB_PLAN.md`                                                                                                                                                                                                   |
+| Verified             | `npm test` **177 tests, zero failures**; `npm run build` green; `npm run format:check` clean; both package globs build locally                                                                                                                                                  |
+| **Not** verified     | **nothing from the port has been watched running**, in a browser or on a television. Streamlined is wired and reachable, so the next thing to do is look at it. The debug workflow has never been dispatched, so its YAML is unproven beyond a local build of the same commands |
 
 ## Where the port stands
 
@@ -20,19 +20,24 @@ Last updated: 2026-08-22
 | ------------------------------- | --------------------------------------------------- |
 | 0 - debug line                  | complete, never dispatched                          |
 | A - facts and ranking           | complete                                            |
-| B - mode plumbing + Streamlined | **pure half complete**; the visible half is next    |
+| B - mode plumbing + Streamlined | **reachable, unwatched**; failure chain outstanding |
 | C - connection figure           | not started                                         |
 | D - Instant                     | not started (withheld by `isSelectable` until then) |
 | E - Tizen 4 verification        | not started                                         |
 
 **What exists and is tested:** the release-tag and language vocabularies, the source-facts
 extractor, the source ranking, the mode router and its precedence table, the quality options with
-their absolute bands, and the source selector with its protocol, cache and language gates.
+their absolute bands, the source selector with its protocol, cache and language gates, the startup
+watchdog, and the route-surface covering rules.
 
-**What does not exist yet:** the quality sheet, the progress overlay and failure chain, the
-startup watchdog, the stored settings keys and their sync mapping, the settings rows, the
-first-launch mode selector, the `playback_*` strings, and the `StreamScreen.mount` wiring that
-would make any of it reachable. Until that lands, **the app behaves exactly as upstream does.**
+**What is wired and reachable but unwatched:** the quality sheet, the `StreamScreen.mount` route
+decision, the settings row, the eight stored settings keys with their sync mapping, and 70
+`playback_*` strings. Selecting **Streamlined** in Settings and pressing play now opens the sheet
+instead of the source list. **Nobody has looked at it yet.**
+
+**What does not exist yet:** the progress overlay and the capped failure chain (the watchdog and
+`playbackChain` are ported but not wired into the player, so **a dead source still dead-ends**),
+the first-launch mode selector, and everything in Phases C-E.
 
 ## Things discovered here that are not written down anywhere else
 
@@ -69,13 +74,37 @@ See "The line-ending trap" in `AGENTS.md`; it cost a full recovery cycle here.
 
 ## Known-good local setup
 
-`local.properties` is absent on this machine, so builds fall back to `local.example.properties`
-and every key is blank. Consequences seen and confirmed harmless for this work:
+`local.properties` now carries all 19 runtime properties and the dev build is fully configured -
+QR sign-in, account sync, TMDB, Trakt, Simkl and the YouTube proxy all work.
 
-- QR sign-in reports "QR auth is not configured" - `hasQrAuthConfig()` requires `SUPABASE_URL` and
-  `SUPABASE_ANON_KEY`. **Not a bug.**
-- TMDB metadata and account sync are unavailable.
-- Addon streams, source selection and playback are unaffected, which is the whole area under work.
+**Where that config came from, because it is not obvious and cost a detour.** `AGENTS.md` in
+`nuvio-z` says the only stored copy is the GitHub Actions secret `NUVIO_LOCAL_PROPERTIES_BASE64`,
+and Actions secrets are **write-only** - no API reads them back, not even for the owner. Two
+places have the values baked in instead:
+
+1. **An official release package.** `gh release download <tag> --repo NuvioMedia/NuvioWeb
+--pattern "NuvioTV-Tizen-*.wgt"`; a `.wgt` is a zip, and `nuvio.env.js` inside it is the
+   complete runtime config with every key filled in. **This is the one to use** - it is the whole
+   set, current, and needs no guessing.
+2. The installed desktop build (`composeApp-desktop-*.jar`, class
+   `com/nuvio/app/core/network/SupabaseConfig`) carries the Supabase URL, fallback and anon key -
+   but **not** TMDB or the tracker credentials, because that build was made without them. Do not
+   conclude from its absence there that a key does not exist.
+
+Two values that are easy to get wrong:
+
+- **`TV_LOGIN_WEB_BASE_URL` must be `https://nuvio.tv/tv-login`.** Left blank,
+  `resolveRedirectBaseUrl()` falls back to `window.location.origin`, the backend RPC refuses it,
+  and the app reports **"QR backend redirect URL is invalid"** - which reads like a bug in the QR
+  flow and is a missing property.
+- `UNIQUE_CONTRIBUTIONS_BASE_URL` is blank in the official package too. Leave it blank.
+
+⚠ **`local.properties` is gitignored and must stay that way.** Never paste its values into a
+document, a commit message, or an issue.
+
+**TMDB is opt-in even with a key.** `tmdbSettings.enabled` defaults to `false`, so nothing changes
+until it is turned on in Settings. Primary metadata comes from the installed addons; TMDB is
+enrichment - the modern home layout, artwork upgrades, trailers, more-like-this.
 
 ## Next
 
