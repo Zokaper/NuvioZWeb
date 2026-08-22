@@ -372,11 +372,11 @@ Nothing blocking. Two things to settle when they are first reached rather than n
 
 ## 8. Execution ledger — update in the same commit as the code
 
-| Phase                           | State       | Notes |
-| ------------------------------- | ----------- | ----- |
-| 0 — debug line                  | not started |       |
-| A — facts and ranking           | not started |       |
-| B — mode plumbing + Streamlined | not started |       |
-| C — connection figure           | not started |       |
-| D — Instant                     | not started |       |
-| E — Tizen 4 verification        | not started |       |
+| Phase                           | State        | Notes                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0 — debug line                  | not started  |                                                                                                                                                                                                                                                                                                                                                                   |
+| A — facts and ranking           | **complete** | `releaseTags`, `languageCodes`, `sourceFacts`, `sourceRanking` ported with their Kotlin suites - 52 tests, zero failures. Nothing consumes them yet, so no behaviour changed. ⚠ The three structured rungs (`parsed`, `streamData.parsedFile`, `pluginMeta`) are ported but nothing this app talks to populates them; extraction runs on filename + display text. |
+| B — mode plumbing + Streamlined | not started  |                                                                                                                                                                                                                                                                                                                                                                   |
+| C — connection figure           | not started  |                                                                                                                                                                                                                                                                                                                                                                   |
+| D — Instant                     | not started  |                                                                                                                                                                                                                                                                                                                                                                   |
+| E — Tizen 4 verification        | not started  |                                                                                                                                                                                                                                                                                                                                                                   |
