@@ -42,6 +42,21 @@ import { Environment } from "../../../platform/environment.js";
 import { WebOsLunaService } from "../../../platform/webos/webosLunaService.js";
 import { I18n } from "../../../i18n/index.js";
 import {
+  PLAYBACK_ROUTE_DECISION,
+  createRouteInputs,
+  decide as decidePlaybackRoute
+} from "../../../core/playback/playbackModeRouter.js";
+import {
+  createSelectionContext,
+  createSourceCandidate
+} from "../../../core/playback/playbackSelectionContext.js";
+import {
+  SELECTION_RESULT,
+  isSelectionReady,
+  selectSource
+} from "../../../core/playback/playbackSourceSelector.js";
+import { QualitySheet } from "../playback/qualitySheet.js";
+import {
   matchStreamBadges,
   normalizeStreamBadgeChipColor,
   normalizeStreamBadgeRules
@@ -189,6 +204,23 @@ function detectQuality(text = "") {
   if (value.includes("720")) return "720p";
   if (value.includes("480")) return "480p";
   return "Auto";
+}
+
+/**
+ * Whether this build can play a torrent at all, independent of any particular stream.
+ *
+ * ⚠ Not the same question as the user's `playbackAllowTorrentAutopick` setting. The public Samsung
+ * Store profile ships without EngineFS, so on it the torrent branch is unreachable whatever the
+ * user chose - and webOS needs its companion service running. Asked through the resolvers' own
+ * predicates rather than re-deriving the capability, so the auto-picker's gate and the source
+ * list cannot disagree about what this device can start.
+ */
+function supportsP2pPlayback() {
+  const probe = { infoHash: "0000000000000000000000000000000000000000" };
+  return (
+    WebOsEngineFsResolver.canResolveStream(probe) ||
+    TizenStreamingServerResolver.canResolveStream(probe)
+  );
 }
 
 function isMagnetUrl(value = "") {
@@ -1371,6 +1403,21 @@ export const StreamScreen = {
         String(this.params?.preferredStreamId || "").trim())
     );
     this.autoPlayAttempted = returningFromPlayer;
+    // Which selection mechanism this play uses. Every branch but Streamlined falls through to the
+    // source list exactly as before, so Classic is unchanged.
+    //
+    // Returning from the player is a back navigation, not a fresh open - the same reason auto-play
+    // and auto-resume are suppressed above. Re-opening the sheet here would put it back on screen
+    // the instant the user pressed Back out of playback.
+    this.closeQualitySheet();
+    const decision = returningFromPlayer
+      ? null
+      : this.resolvePlaybackRoute({ reusableStream, playerSettings });
+    if (decision?.key === PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET) {
+      // Opened before any stream has arrived: the sheet draws its own loading state and starts the
+      // bounded wait, so a fetch that never settles still ends somewhere the user can act.
+      this.openQualitySheet();
+    }
     this.cancelAutoPlayCountdown();
     this.cancelAutoPlaySelectionWait();
     const autoPlayWaitSeconds = Math.max(
@@ -1596,6 +1643,7 @@ export const StreamScreen = {
       this.requestRender({ delayMs: 120 });
       this.maybeAutoResumeStream();
       this.maybeAutoPlayStream();
+      this.refreshQualitySheet();
     };
 
     const queueChunkGroups = (groups = []) => {
@@ -1698,6 +1746,7 @@ export const StreamScreen = {
       this.scheduleErrorChipCleanup();
       this.maybeAutoResumeStream({ allLoaded: true });
       this.maybeAutoPlayStream({ allLoaded: true });
+      this.refreshQualitySheet();
     } catch (error) {
       if (token !== this.loadToken) {
         return;
@@ -1715,6 +1764,149 @@ export const StreamScreen = {
 
   // Continue Watching can pass the identity of the stream that was playing.
   // If that same source shows up again, resume it directly.
+  // --- Playback modes -----------------------------------------------------------------------
+  //
+  // The web counterpart of `entry<StreamRoute>` in nuvio-z's App.kt. `mount` gathers the inputs,
+  // `playbackModeRouter.decide` owns the precedence, and only the Streamlined branch does anything
+  // different - every other branch falls through to the source list exactly as before, which is
+  // what keeps Classic byte-for-byte unchanged.
+
+  /**
+   * Which selection mechanism this play uses. Called once per mount, before any stream arrives.
+   *
+   * ⚠ The decision is **stored**, not re-derived. Re-running `decide` later answers
+   * `REUSE_LAST_LINK` where it first answered `SHOW_QUALITY_SHEET`, because by then the play has
+   * written a reuse-last-link entry - the same trap mobile hit when the route outlived its
+   * composition.
+   */
+  resolvePlaybackRoute({ reusableStream, playerSettings }) {
+    this.playbackDecision = decidePlaybackRoute(
+      createRouteInputs({
+        mode: playerSettings.playbackMode,
+        manualSelection: Boolean(this.params?.manualSelection),
+        // Always false on TV: this app does not download. The rung stays in the router so the
+        // ordering is the one mobile and desktop run.
+        hasCompletedLocalDownload: false,
+        reuseLastLinkEnabled: Boolean(playerSettings.streamReuseLastLinkEnabled),
+        hasValidCachedLink: Boolean(reusableStream?.streamId)
+      })
+    );
+    return this.playbackDecision;
+  },
+
+  /**
+   * The settings that shape an automatic pick, resolved once per mount.
+   *
+   * The player's language sentinels - `system`, `default`, `device`, `original`, `none`, `off` -
+   * are instructions to *track selection* and name no language a release can be ranked against,
+   * so they resolve to null here rather than being matched as if they were codes.
+   */
+  playbackSelectionContext() {
+    const settings = PlayerSettingsStore.get();
+    const resolveLanguage = (value) => {
+      const code = String(value ?? "")
+        .trim()
+        .toLowerCase();
+      if (!code || ["system", "default", "device", "original", "none", "off"].includes(code)) {
+        return null;
+      }
+      return code;
+    };
+    return createSelectionContext({
+      runtimeMinutes: Number(this.params?.runtimeMinutes) || null,
+      isEpisode: Boolean(this.params?.videoId && this.params.videoId !== this.params.itemId),
+      // ⚠ Capability *and* setting. The public Samsung Store profile ships without EngineFS, so
+      // the torrent branch is unreachable there whatever the user chose.
+      allowTorrentSources: Boolean(settings.playbackAllowTorrentAutopick) && supportsP2pPlayback(),
+      preferredAudioLanguage: resolveLanguage(settings.preferredAudioLanguage),
+      secondaryAudioLanguage: resolveLanguage(settings.secondaryPreferredAudioLanguage),
+      codecPreference: settings.playbackCodecPreference,
+      dynamicRangePolicy: settings.playbackDynamicRangePolicy,
+      audioPreference: settings.playbackAudioPreference,
+      languageStrictness: settings.playbackLanguageStrictness,
+      qualityCeilingMbps: Number(settings.playbackQualityCeilingMbps) || null
+    });
+  },
+
+  /** Every currently known stream as a ranked candidate. Rebuilt as addons answer. */
+  playbackCandidates() {
+    return this.getFilteredStreams().map((stream, index) =>
+      createSourceCandidate(stream, {
+        addonOrder: Number.isFinite(Number(stream?.addonOrderIndex))
+          ? Number(stream.addonOrderIndex)
+          : index
+      })
+    );
+  },
+
+  openQualitySheet() {
+    if (this.qualitySheet) {
+      return;
+    }
+    this.qualitySheet = new QualitySheet({
+      read: () => {
+        const context = this.playbackSelectionContext();
+        const candidates = this.playbackCandidates();
+        return {
+          candidates,
+          context,
+          // The two tokens are deliberately the same value. On mobile they differ because the
+          // sheet captures the token it was opened for and compares it against the one that
+          // arrives; here `read()` is called fresh on every refresh and always sees the live
+          // screen state, so a stale request cannot reach it - `mount` bumps `loadToken` and
+          // closes the sheet. The clause is kept rather than dropped so the readiness rule stays
+          // the shared one.
+          isReady: isSelectionReady({
+            requestToken: this.loadToken,
+            expectedRequestToken: this.loadToken,
+            isAnyLoading: Boolean(this.loading),
+            candidateCount: candidates.length,
+            hasTerminalEmptyState: Boolean(this.error),
+            hasStreams: this.streams.length > 0
+          })
+        };
+      },
+      onSelect: (option) => {
+        const context = this.playbackSelectionContext();
+        const result = selectSource(option.candidates, context);
+        if (result.type === SELECTION_RESULT.PLAY) {
+          this.closeQualitySheet();
+          void this.playStream(result.stream.id);
+          return;
+        }
+        // ASK_UNCACHED and NEEDS_MANUAL both mean "nothing here is safe to start unattended".
+        // The source list is the honest answer, and it is already loaded underneath.
+        this.closeQualitySheet();
+        this.showStreamToast?.(
+          I18n.t(
+            "playback_quality_no_match",
+            {},
+            { fallback: "No safe automatic source matched. Choose a source manually." }
+          )
+        );
+      },
+      // Both the escape hatch and Back land on the source list rather than popping the route.
+      //
+      // ⚠ Deliberate divergence from mobile, where dismissing the sheet pops `StreamRoute`. Here
+      // the stream screen *is* the source list and it is already loaded behind the sheet, so
+      // dropping to it is strictly less destructive than throwing the fetch away and going back.
+      onManual: () => this.closeQualitySheet(),
+      onDismiss: () => this.closeQualitySheet()
+    }).mount(document.body);
+  },
+
+  refreshQualitySheet() {
+    this.qualitySheet?.refresh();
+  },
+
+  closeQualitySheet() {
+    if (!this.qualitySheet) {
+      return;
+    }
+    this.qualitySheet.destroy();
+    this.qualitySheet = null;
+  },
+
   maybeAutoResumeStream({ allLoaded = false } = {}) {
     if (this.autoResumeAttempted) {
       return;
@@ -3616,6 +3808,7 @@ export const StreamScreen = {
   },
 
   cleanup() {
+    this.closeQualitySheet();
     this.cancelAutoPlayCountdown();
     this.cancelAutoPlaySelectionWait();
     this.loadToken = (this.loadToken || 0) + 1;

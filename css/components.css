@@ -22203,3 +22203,133 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   width: 100%;
   margin: 0.65rem 0;
 }
+
+/* Playback quality sheet (Streamlined).
+   Follows the NuvioDialog metrics: 1920px screen = 960dp, so 1dp = 2px.
+   Palette: scrim rgba(0,0,0,0.72), panel #1A1A1A, row #242424, focus #F5F5F5 on #111111. */
+.playback-quality-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.playback-quality-panel {
+  width: 54.2vw;
+  max-height: 78vh;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 48px;
+  border: 2px solid #333333;
+  border-radius: 32px;
+  background: #1a1a1a;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+.playback-quality-title {
+  font-size: 40px;
+  font-weight: 500;
+}
+
+.playback-quality-subtitle,
+.playback-quality-connection {
+  margin-top: 12px;
+  font-size: 28px;
+  color: #b3b3b3;
+}
+
+.playback-quality-loading,
+.playback-quality-empty {
+  padding: 32px 0;
+  font-size: 28px;
+  color: #b3b3b3;
+}
+
+.playback-quality-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.playback-quality-group-badge {
+  margin-top: 16px;
+  font-size: 30px;
+  font-weight: 600;
+  color: #f5f5f5;
+}
+
+.playback-quality-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 24px 32px;
+  border: 0;
+  border-radius: 20px;
+  background: #242424;
+  color: #ffffff;
+  text-align: left;
+  font: inherit;
+  cursor: default;
+  transition:
+    background-color 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.playback-quality-row.focused {
+  background: #f5f5f5;
+  color: #111111;
+}
+
+.playback-quality-row-label {
+  font-size: 30px;
+  font-weight: 500;
+}
+
+.playback-quality-row-summary {
+  font-size: 26px;
+  color: #b3b3b3;
+}
+
+.playback-quality-row.focused .playback-quality-row-summary {
+  color: #3a3a3a;
+}
+
+/* Capped at MAX_LOAD_FRACTION by connectionFit, so the bar is width = loadFraction / 2. */
+.playback-quality-meter {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+}
+
+.playback-quality-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #f5f5f5;
+}
+
+.playback-quality-row.focused .playback-quality-meter {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.playback-quality-row.focused .playback-quality-meter > span {
+  background: #111111;
+}
+
+.playback-quality-warning {
+  font-size: 24px;
+  color: #ff5252;
+}
+
+.playback-quality-row.focused .playback-quality-warning {
+  color: #8c1d1d;
+}

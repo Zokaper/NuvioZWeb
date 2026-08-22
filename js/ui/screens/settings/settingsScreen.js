@@ -1,4 +1,5 @@
 /* global __NUVIO_APP_VERSION__ */
+import { PLAYBACK_MODES, isSelectable } from "../../../core/playback/playbackModeModels.js";
 import { Router } from "../../navigation/router.js";
 import { ScreenUtils } from "../../navigation/screen.js";
 import { addonRepository } from "../../../data/repository/addonRepository.js";
@@ -360,6 +361,19 @@ const SECONDARY_PLAYBACK_LANGUAGE_OPTIONS = [
   { id: "original", labelKey: "audio_lang_original", label: "Original language" },
   ...AVAILABLE_LANGUAGES
 ];
+
+/**
+ * Playback modes. Only selectable modes are offered - see `isSelectable` in
+ * playbackModeModels.js. Instant is withheld until its route paths land (Phase D of
+ * PLAYBACK_MODES_WEB_PLAN.md); a mode that silently behaves like a different one reads as a bug,
+ * which is exactly what shipped on mobile once.
+ */
+const PLAYBACK_MODE_OPTIONS = PLAYBACK_MODES.filter(isSelectable).map((mode) => ({
+  id: mode,
+  labelKey: `playback_mode_${mode.toLowerCase()}`,
+  captionKey: `playback_mode_${mode.toLowerCase()}_description`,
+  label: mode.charAt(0) + mode.slice(1).toLowerCase()
+}));
 
 const STREAM_AUTOPLAY_MODE_OPTIONS = [
   {
@@ -5783,6 +5797,17 @@ export const SettingsScreen = {
         }
       });
     });
+    this.actionMap.set("playback:playbackMode", () => {
+      this.openOptionDialog({
+        title: t("playback_mode_selector_title", {}, "How should Nuvio pick sources?"),
+        options: PLAYBACK_MODE_OPTIONS,
+        selectedId: PlayerSettingsStore.get().playbackMode,
+        returnFocusKey: "playback:playbackMode",
+        onSelect: (option) => {
+          PlayerSettingsStore.set({ playbackMode: option.id });
+        }
+      });
+    });
     this.actionMap.set("playback:autoStreamMode", () => {
       this.openOptionDialog({
         title: t("autoplay_stream_selection", {}, "Auto Stream Selection"),
@@ -6363,6 +6388,17 @@ export const SettingsScreen = {
               })
             : ""
         }
+        ${this.renderActionRow({
+          focusKey: "playback:playbackMode",
+          title: t("playback_mode_selector_title", {}, "How should Nuvio pick sources?"),
+          subtitle: translateOptionCaption(
+            PLAYBACK_MODE_OPTIONS.find(
+              (option) => String(option.id) === String(model.player.playbackMode)
+            ),
+            t("playback_mode_classic_description", {}, "You pick the source from the full list.")
+          ),
+          value: labelForOptionId(PLAYBACK_MODE_OPTIONS, model.player.playbackMode, "Classic")
+        })}
         ${this.renderActionRow({
           focusKey: "playback:autoStreamMode",
           title: t("autoplay_stream_selection", {}, "Auto Stream Selection"),
