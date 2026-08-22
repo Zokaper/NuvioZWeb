@@ -1115,6 +1115,23 @@ const FEATURE_ADAPTERS = {
           3.5,
           2
         ),
+        // Playback modes. These key names are mobile's, from PlayerSettingsStorage.android.kt, so
+        // a mode chosen on a phone carries to the television and back.
+        //
+        // ⚠ `playback_mode` is pushed from the *stored* value, not the coerced one. A profile
+        // whose mode is withheld on this client must not have its choice rewritten for every other
+        // client - that is the whole point of coercing on read.
+        playback_mode: String(settings.playbackMode || "CLASSIC"),
+        playback_mode_selector_seen: Boolean(settings.playbackModeSelectorSeen),
+        playback_allow_torrent_autopick: Boolean(settings.playbackAllowTorrentAutopick),
+        playback_codec_preference: String(settings.playbackCodecPreference || "ANY"),
+        playback_dynamic_range_policy: String(settings.playbackDynamicRangePolicy || "ANY"),
+        playback_audio_preference: String(settings.playbackAudioPreference || "ANY"),
+        playback_language_strictness: String(settings.playbackLanguageStrictness || "REQUIRE"),
+        playback_quality_ceiling_mbps: Math.max(
+          0,
+          Math.trunc(Number(settings.playbackQualityCeilingMbps ?? 0) || 0)
+        ),
         stream_auto_play_mode: String(settings.streamAutoPlayMode || "MANUAL"),
         stream_auto_play_source: String(settings.streamAutoPlaySource || "ALL_SOURCES"),
         stream_auto_play_selected_addons: Array.isArray(settings.streamAutoPlaySelectedAddons)
@@ -1396,6 +1413,36 @@ const FEATURE_ADAPTERS = {
           0,
           3.5,
           2
+        );
+      }
+      // Playback modes. Every value is normalized by `normalizePlayerSettings` on the way into the
+      // store, so an unknown enum constant from a newer client falls back to its default rather
+      // than making this profile's settings unreadable.
+      if (raw.playback_mode != null) {
+        partial.playbackMode = String(raw.playback_mode);
+      }
+      if (raw.playback_mode_selector_seen != null) {
+        partial.playbackModeSelectorSeen = Boolean(raw.playback_mode_selector_seen);
+      }
+      if (raw.playback_allow_torrent_autopick != null) {
+        partial.playbackAllowTorrentAutopick = Boolean(raw.playback_allow_torrent_autopick);
+      }
+      if (raw.playback_codec_preference != null) {
+        partial.playbackCodecPreference = String(raw.playback_codec_preference);
+      }
+      if (raw.playback_dynamic_range_policy != null) {
+        partial.playbackDynamicRangePolicy = String(raw.playback_dynamic_range_policy);
+      }
+      if (raw.playback_audio_preference != null) {
+        partial.playbackAudioPreference = String(raw.playback_audio_preference);
+      }
+      if (raw.playback_language_strictness != null) {
+        partial.playbackLanguageStrictness = String(raw.playback_language_strictness);
+      }
+      if (numberOrNull(raw.playback_quality_ceiling_mbps) != null) {
+        partial.playbackQualityCeilingMbps = Math.max(
+          0,
+          Math.trunc(Number(raw.playback_quality_ceiling_mbps))
         );
       }
       if (raw.stream_auto_play_mode != null) {

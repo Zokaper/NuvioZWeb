@@ -1,5 +1,9 @@
 import { createProfileScopedStore } from "./profileScopedStore.js";
 import {
+  coerceSelectable,
+  playbackModeFromStorage
+} from "../../core/playback/playbackModeModels.js";
+import {
   SUBTITLE_VERTICAL_OFFSET_CONTRACT,
   SUBTITLE_VERTICAL_OFFSET_DEFAULT,
   normalizeSubtitleVerticalOffset
@@ -68,7 +72,22 @@ const DEFAULTS = {
   streamAutoPlayReuseBingeGroup: true,
   streamReuseLastLinkEnabled: false,
   streamReuseLastLinkCacheHours: 24,
-  streamAutoPlayTimeoutSeconds: 3
+  streamAutoPlayTimeoutSeconds: 3,
+  // Playback modes. Ported from nuvio-z; the sync keys are the ones mobile already writes, so a
+  // profile's mode carries between a phone and a television. See PLAYBACK_MODES_WEB_PLAN.md.
+  //
+  // ⚠ Existing installs must land on CLASSIC. The first-launch selector is shown to everyone,
+  // including people who have used the app for months, and it is pre-selected to Classic so that
+  // dismissing it changes nothing about how their app behaves.
+  playbackMode: "CLASSIC",
+  playbackModeSelectorSeen: false,
+  playbackAllowTorrentAutopick: false,
+  playbackCodecPreference: "ANY",
+  playbackDynamicRangePolicy: "ANY",
+  playbackAudioPreference: "ANY",
+  playbackLanguageStrictness: "REQUIRE",
+  // 0 means off. A ceiling is a refusal, not a preference, so nothing is refused unless asked for.
+  playbackQualityCeilingMbps: 0
 };
 
 const STREAM_AUTO_PLAY_MODES = ["MANUAL", "FIRST_STREAM", "REGEX_MATCH"];
@@ -122,6 +141,34 @@ function normalizeStreamAutoPlayTimeout(value) {
     (closest, entry) => (Math.abs(entry - seconds) < Math.abs(closest - seconds) ? entry : closest),
     DEFAULTS.streamAutoPlayTimeoutSeconds
   );
+}
+
+function normalizeFromSet(value, allowed, fallback) {
+  const normalized = String(value ?? "")
+    .trim()
+    .toUpperCase();
+  return allowed.includes(normalized) ? normalized : fallback;
+}
+
+/**
+ * The stored playback mode, **coerced on read and never on write**.
+ *
+ * A profile whose chosen mode is withheld keeps its stored key and gets the mode back the moment
+ * `isSelectable` says yes. This already proved itself on mobile: a profile that chose Instant
+ * before `0.4.10-beta` withheld it was read as Streamlined for two releases with its stored key
+ * untouched, and came back to Instant on its own. Rewriting storage here would have forgotten
+ * those choices for good.
+ */
+function normalizePlaybackMode(value) {
+  return coerceSelectable(playbackModeFromStorage(value));
+}
+
+function normalizeQualityCeilingMbps(value) {
+  const mbps = Math.trunc(Number(value));
+  if (!Number.isFinite(mbps) || mbps <= 0) {
+    return 0;
+  }
+  return Math.min(1000, mbps);
 }
 
 function normalizeStringList(value) {
@@ -316,6 +363,32 @@ export function normalizePlayerSettings(settings = {}) {
     ),
     streamAutoPlayTimeoutSeconds: normalizeStreamAutoPlayTimeout(
       persistentSettings.streamAutoPlayTimeoutSeconds
+    ),
+    playbackMode: normalizePlaybackMode(persistentSettings.playbackMode),
+    playbackModeSelectorSeen: Boolean(persistentSettings.playbackModeSelectorSeen),
+    playbackAllowTorrentAutopick: Boolean(persistentSettings.playbackAllowTorrentAutopick),
+    playbackCodecPreference: normalizeFromSet(
+      persistentSettings.playbackCodecPreference,
+      ["ANY", "HEVC", "AV1", "AVC"],
+      DEFAULTS.playbackCodecPreference
+    ),
+    playbackDynamicRangePolicy: normalizeFromSet(
+      persistentSettings.playbackDynamicRangePolicy,
+      ["ANY", "AVOID_HDR", "PREFER_HDR", "REQUIRE_HDR", "REQUIRE_DOLBY_VISION"],
+      DEFAULTS.playbackDynamicRangePolicy
+    ),
+    playbackAudioPreference: normalizeFromSet(
+      persistentSettings.playbackAudioPreference,
+      ["ANY", "PREFER_SURROUND", "PREFER_LOSSLESS", "PREFER_IMMERSIVE", "REQUIRE_LOSSLESS"],
+      DEFAULTS.playbackAudioPreference
+    ),
+    playbackLanguageStrictness: normalizeFromSet(
+      persistentSettings.playbackLanguageStrictness,
+      ["OFF", "PREFER", "REQUIRE"],
+      DEFAULTS.playbackLanguageStrictness
+    ),
+    playbackQualityCeilingMbps: normalizeQualityCeilingMbps(
+      persistentSettings.playbackQualityCeilingMbps
     ),
     nextEpisodeThresholdMode: normalizeNextEpisodeThresholdMode(
       persistentSettings.nextEpisodeThresholdMode ?? DEFAULTS.nextEpisodeThresholdMode
