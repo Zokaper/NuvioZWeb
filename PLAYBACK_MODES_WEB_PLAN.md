@@ -4,21 +4,54 @@ Port plan for `NuvioWeb` (Samsung Tizen + LG webOS), from `nuvio-z` (Android/iOS
 `NuvioZDesktop`. Written to be executable by a cold agent with no access to the conversation
 that produced it.
 
+## ⚠ The Kotlin is the specification, not this file and not the mobile plan
+
+`nuvio-z/PLAYBACK_MODES_PLAN.md` is a _plan_, written ahead of the work and amended as it
+landed. Parts of it may be stale. **The shipped Kotlin is what is verified to work, and the port
+replicates it as closely as JavaScript allows** — same ordering, same constants, same guard
+clauses, same names where they carry meaning. Where this document and the Kotlin disagree, the
+Kotlin wins and this document is wrong and should be fixed.
+
+The plan file is still worth reading for _why_ a rule exists. It is not authority for _what_ the
+rule is.
+
+**One implementation, not two.** All twelve files this port copies from are byte-identical
+between `nuvio-z` and `NuvioZDesktop` apart from line endings — verified by
+`diff --strip-trailing-cr`. Port from `nuvio-z`; there is nothing to reconcile.
+
 **Read first, in this order:**
 
-1. `nuvio-z/PLAYBACK_MODES_PLAN.md` — the canonical design. Seven phases, all complete on
-   mobile/desktop. Every "why" below is short because that file is long.
-2. `nuvio-z/STATUS.md` — current state of the source repositories. `Next work` names this port.
-3. `NuvioWeb/CONTRIBUTING.md` — this repository refuses behaviour changes without maintainer
-   approval, and "stream/source selection" is named explicitly as behaviour. **This port is a
-   product-direction change and needs that approval before a PR, not after.** That is why the
-   work lives in a fork and why nothing here ships to the release line — see "Settled" below.
+1. The Kotlin sources listed in §3a — canonical.
+2. `nuvio-z/PLAYBACK_MODES_PLAN.md` — the reasoning behind them. Every "why" below is short
+   because that file is long.
+3. `nuvio-z/STATUS.md` — current state of the source repositories. `Next work` names this port.
 
-| | |
-| --- | --- |
-| Fork | `Zokaper/NuvioZWeb`, `origin`. `upstream` is `NuvioMedia/NuvioWeb`, mirroring how `nuvio-z` is set up |
-| Working copy | `A:/Antigravity Projects/Nuvio Z/nuvioweb` |
-| Branch | `claude/playback-modes-web`, cut from `0c3bafc` (`chore: finalize TV store scope and remove tests`) |
+This fork is a permanent personal line, not a contribution route: nothing here is destined for
+`NuvioMedia/NuvioWeb`, so `CONTRIBUTING.md`'s approval rules do not gate the work. Keeping
+`upstream` wired is only so the fork can take their fixes.
+
+|              |                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Fork         | `Zokaper/NuvioZWeb`, `origin`. `upstream` is `NuvioMedia/NuvioWeb`, mirroring how `nuvio-z` is set up                        |
+| Working copy | `A:/Antigravity Projects/Nuvio Z/nuvioweb`                                                                                   |
+| Branch       | `claude/playback-modes-web`, cut from `0c3bafc` (`chore: finalize TV store scope and remove tests`)                          |
+| PC dev loop  | `npm install && npm run build && npm run serve` → `http://127.0.0.1:4173/`. No TV needed for anything but final verification |
+
+### Testing on a PC
+
+`npm run serve` builds nothing — run `npm run build` first, then serve `dist/` on `:4173` and
+open it in Chrome. `js/platform/adapters/browserAdapter.js` is the desktop-browser adapter, so
+the app runs with keyboard arrows standing in for the D-pad.
+
+Two caveats:
+
+- **`local.properties` is absent**, so the build falls back to `local.example.properties` and
+  every API key is blank. TMDB metadata and account sync will not work. Addon streams and the
+  whole source-selection path — which is all this port touches — do not need it. Drop a real
+  `local.properties` in (same property names as Android) if full metadata is wanted.
+- `npm run serve` also spawns the webOS EngineFS companion, which prints a wall of
+  hardware-transcode probe failures because ffmpeg is not installed. Harmless; it is only
+  needed for P2P playback.
 
 ### Settled before the work started
 
@@ -41,11 +74,11 @@ that produced it.
 
 One global setting, chosen once, changeable in Settings, never a trap.
 
-| Mode | Who picks the quality | Who picks the source |
-| --- | --- | --- |
-| **Classic** | the user | the user — today's source list |
-| **Streamlined** | the user, from a sheet of quality rows built from the sources that exist | the app, ranked within that row |
-| **Instant** | the app, from the measured connection | the app — Streamlined with the sheet auto-answered |
+| Mode            | Who picks the quality                                                    | Who picks the source                               |
+| --------------- | ------------------------------------------------------------------------ | -------------------------------------------------- |
+| **Classic**     | the user                                                                 | the user — today's source list                     |
+| **Streamlined** | the user, from a sheet of quality rows built from the sources that exist | the app, ranked within that row                    |
+| **Instant**     | the app, from the measured connection                                    | the app — Streamlined with the sheet auto-answered |
 
 Instant is **not** a second engine. On mobile it is one effect that answers the sheet with
 `stickyAffordable` and hands off through the same start path: one picker, one failure chain,
@@ -65,19 +98,19 @@ the ordering is still the one place precedence exists.
 
 ## 2. What NuvioWeb already has — this is most of the integration work, already done
 
-The port is smaller than it looks because the *host* side already matches mobile:
+The port is smaller than it looks because the _host_ side already matches mobile:
 
-| Needed | Already in this repo |
-| --- | --- |
-| An escape hatch to the source list | `metaDetailsScreen.js` hold menu → `playManually`, threaded as `params.manualSelection` into the stream route (`streamScreen.js:1794`) |
-| Reuse-last-link | `data/local/streamPreferencesStore.js` + `playerSettings.streamReuseLastLinkEnabled/CacheHours`, already consulted in `StreamScreen.mount` |
-| Classic auto-play | `core/streams/streamAutoPlaySelector.js`, already a port of `StreamAutoPlaySelector`/`StreamAutoPlayPolicy`. **Stays Classic-only** — same rule as mobile: two pickers on one candidate set have no tiebreak |
-| Profile-scoped settings storage | `data/local/profileScopedStore.js`, `playerSettingsStore.js` |
-| Cross-device settings sync with mobile | `core/profile/profileSettingsSyncService.js`, snake_case keys shared with `PlayerSettingsStorage.android.kt` |
-| Android-style string resources | `res/values*/strings.xml` — **the same key namespace nuvio-z uses**, so the 55 `playback_*` keys copy across rather than being re-authored |
-| A TV dialog + focus model | `ui/components/nuvioDialog.js`, `ui/navigation/focusEngine.js` |
-| A first-launch selection screen precedent | `ui/screens/onboarding/experienceModeSelectionScreen.js` (Essential/Advanced) — the shape the mode selector copies |
-| Stream shape carrying what the facts extractor needs | `behaviorHints`, `clientResolve`, `debridCacheStatus`, `infoHash`, `bingeGroup`, `filename` all present in `streamScreen.js` merge code |
+| Needed                                               | Already in this repo                                                                                                                                                                                         |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| An escape hatch to the source list                   | `metaDetailsScreen.js` hold menu → `playManually`, threaded as `params.manualSelection` into the stream route (`streamScreen.js:1794`)                                                                       |
+| Reuse-last-link                                      | `data/local/streamPreferencesStore.js` + `playerSettings.streamReuseLastLinkEnabled/CacheHours`, already consulted in `StreamScreen.mount`                                                                   |
+| Classic auto-play                                    | `core/streams/streamAutoPlaySelector.js`, already a port of `StreamAutoPlaySelector`/`StreamAutoPlayPolicy`. **Stays Classic-only** — same rule as mobile: two pickers on one candidate set have no tiebreak |
+| Profile-scoped settings storage                      | `data/local/profileScopedStore.js`, `playerSettingsStore.js`                                                                                                                                                 |
+| Cross-device settings sync with mobile               | `core/profile/profileSettingsSyncService.js`, snake_case keys shared with `PlayerSettingsStorage.android.kt`                                                                                                 |
+| Android-style string resources                       | `res/values*/strings.xml` — **the same key namespace nuvio-z uses**, so the 55 `playback_*` keys copy across rather than being re-authored                                                                   |
+| A TV dialog + focus model                            | `ui/components/nuvioDialog.js`, `ui/navigation/focusEngine.js`                                                                                                                                               |
+| A first-launch selection screen precedent            | `ui/screens/onboarding/experienceModeSelectionScreen.js` (Essential/Advanced) — the shape the mode selector copies                                                                                           |
+| Stream shape carrying what the facts extractor needs | `behaviorHints`, `clientResolve`, `debridCacheStatus`, `infoHash`, `bingeGroup`, `filename` all present in `streamScreen.js` merge code                                                                      |
 
 **What it does not have, at all:** any structured reading of a source. `detectQuality()` in
 `streamScreen.js:185` is four `includes()` calls returning `"4k" | "1080p" | "720p" | "480p" |
@@ -94,19 +127,19 @@ Every file in this table is already pure in Kotlin (no Compose, no repositories,
 because `nuvio-z` deliberately built it that way to be testable outside Gradle. It translates
 to plain ES modules under `js/core/playback/` and `js/core/sources/` with no host dependency.
 
-| Kotlin source | New web module | Kotlin LOC | Notes |
-| --- | --- | --- | --- |
-| `core/media/ReleaseTags.kt` | `js/core/sources/releaseTags.js` | 270 | release/dynamic-range/audio vocabulary |
-| `core/language/LanguageCodes.kt` | `js/core/sources/languageCodes.js` | 466 | trim to what `SourceFacts` and the ranking actually call |
-| `features/downloads/SourceFacts.kt` (incl. `SourceFactsExtractor`) | `js/core/sources/sourceFacts.js` | 550 | the big one; input shape is the web stream object, not `StreamItem` |
-| `features/downloads/SourceRanking.kt` | `js/core/sources/sourceRanking.js` | 289 | incl. `isLanguageWatchable` |
-| `features/playback/PlaybackModeModels.kt` | `js/core/playback/playbackModeModels.js` | 157 | `PlaybackMode`, `isSelectable`, `coerceSelectable`, `StickySourcePin` |
-| `features/playback/PlaybackModeRouter.kt` | `js/core/playback/playbackModeRouter.js` | 148 | decision + `fromKey` |
-| `features/playback/PlaybackQualityOptions.kt` | `js/core/playback/playbackQualityOptions.js` | 771 | absolute bands, `HEADROOM`, ceiling, fake-resolution demotion |
-| `features/playback/PlaybackSourceSelector.kt` | `js/core/playback/playbackSourceSelector.js` | 396 | protocol gate, uncached-debrid gate, language partition, `describe*` |
-| `features/playback/PlaybackStartupWatchdog.kt` | `js/core/playback/playbackStartupWatchdog.js` | 227 | |
-| `core/network/ThroughputWindow.kt` | `js/core/network/throughputWindow.js` | 320 | Phase C |
-| `core/network/NetworkThroughputMeter.kt` | `js/core/network/networkThroughputMeter.js` | 186 | Phase C; reads `video.buffered.end()` on web |
+| Kotlin source                                                      | New web module                                | Kotlin LOC | Notes                                                                 |
+| ------------------------------------------------------------------ | --------------------------------------------- | ---------- | --------------------------------------------------------------------- |
+| `core/media/ReleaseTags.kt`                                        | `js/core/sources/releaseTags.js`              | 270        | release/dynamic-range/audio vocabulary                                |
+| `core/language/LanguageCodes.kt`                                   | `js/core/sources/languageCodes.js`            | 466        | trim to what `SourceFacts` and the ranking actually call              |
+| `features/downloads/SourceFacts.kt` (incl. `SourceFactsExtractor`) | `js/core/sources/sourceFacts.js`              | 550        | the big one; input shape is the web stream object, not `StreamItem`   |
+| `features/downloads/SourceRanking.kt`                              | `js/core/sources/sourceRanking.js`            | 289        | incl. `isLanguageWatchable`                                           |
+| `features/playback/PlaybackModeModels.kt`                          | `js/core/playback/playbackModeModels.js`      | 157        | `PlaybackMode`, `isSelectable`, `coerceSelectable`, `StickySourcePin` |
+| `features/playback/PlaybackModeRouter.kt`                          | `js/core/playback/playbackModeRouter.js`      | 148        | decision + `fromKey`                                                  |
+| `features/playback/PlaybackQualityOptions.kt`                      | `js/core/playback/playbackQualityOptions.js`  | 771        | absolute bands, `HEADROOM`, ceiling, fake-resolution demotion         |
+| `features/playback/PlaybackSourceSelector.kt`                      | `js/core/playback/playbackSourceSelector.js`  | 396        | protocol gate, uncached-debrid gate, language partition, `describe*`  |
+| `features/playback/PlaybackStartupWatchdog.kt`                     | `js/core/playback/playbackStartupWatchdog.js` | 227        |                                                                       |
+| `core/network/ThroughputWindow.kt`                                 | `js/core/network/throughputWindow.js`         | 320        | Phase C                                                               |
+| `core/network/NetworkThroughputMeter.kt`                           | `js/core/network/networkThroughputMeter.js`   | 186        | Phase C; reads `video.buffered.end()` on web                          |
 
 ≈ 3 780 Kotlin lines in, expect ≈ 2 500–3 000 JS lines out.
 
@@ -125,30 +158,30 @@ bugs that shipped:
 
 Compose does not translate. These are new web code against the existing screen/focus idiom.
 
-| Kotlin source | Web target | Kotlin LOC |
-| --- | --- | --- |
-| `features/playback/PlaybackQualitySheet.kt` | `js/ui/screens/playback/qualitySheet.js` — TV-focused, D-pad, grouped by resolution | 902 |
-| `features/playback/PlaybackProgressOverlay.kt` | `js/ui/screens/playback/playbackProgressOverlay.js` | 262 |
-| `features/playback/StreamRouteSurface.kt` | state held on `StreamScreen` — `isAutoPickRoute`, `isAutoPlaybackStarting` | 203 |
-| `features/playback/PlaybackModeCard.kt` + selector screen | `js/ui/screens/onboarding/playbackModeSelectionScreen.js` | 265 + |
-| `features/playback/PlaybackPreferencesDialog.kt` | `js/ui/screens/settings/playbackPreferencesDialog.js` | 177 |
-| `App.kt` `entry<StreamRoute>` router wiring | `StreamScreen.mount()` — decide before the list renders | — |
-| `PlaybackSettingsPage.kt` rows | `js/ui/screens/settings/settingsScreen.js` playback section | — |
+| Kotlin source                                             | Web target                                                                          | Kotlin LOC |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------- | ---------- |
+| `features/playback/PlaybackQualitySheet.kt`               | `js/ui/screens/playback/qualitySheet.js` — TV-focused, D-pad, grouped by resolution | 902        |
+| `features/playback/PlaybackProgressOverlay.kt`            | `js/ui/screens/playback/playbackProgressOverlay.js`                                 | 262        |
+| `features/playback/StreamRouteSurface.kt`                 | state held on `StreamScreen` — `isAutoPickRoute`, `isAutoPlaybackStarting`          | 203        |
+| `features/playback/PlaybackModeCard.kt` + selector screen | `js/ui/screens/onboarding/playbackModeSelectionScreen.js`                           | 265 +      |
+| `features/playback/PlaybackPreferencesDialog.kt`          | `js/ui/screens/settings/playbackPreferencesDialog.js`                               | 177        |
+| `App.kt` `entry<StreamRoute>` router wiring               | `StreamScreen.mount()` — decide before the list renders                             | —          |
+| `PlaybackSettingsPage.kt` rows                            | `js/ui/screens/settings/settingsScreen.js` playback section                         | —          |
 
 ### 3c. Storage and sync
 
 New keys on `playerSettingsStore.js`, defaults matching mobile:
 
-| Web key | Sync key (already mobile's) | Default |
-| --- | --- | --- |
-| `playbackMode` | `playback_mode` | `CLASSIC` |
-| `playbackModeSelectorSeen` | `playback_mode_selector_seen` | `false` |
-| `playbackAllowTorrentAutopick` | `playback_allow_torrent_autopick` | `false` |
-| `playbackCodecPreference` | `playback_codec_preference` | `ANY` |
-| `playbackDynamicRangePolicy` | `playback_dynamic_range_policy` | `ANY` |
-| `playbackAudioPreference` | `playback_audio_preference` | `ANY` |
-| `playbackLanguageStrictness` | `playback_language_strictness` | `REQUIRE` |
-| `playbackQualityCeilingMbps` | `playback_quality_ceiling_mbps` | `0` (off) |
+| Web key                        | Sync key (already mobile's)       | Default   |
+| ------------------------------ | --------------------------------- | --------- |
+| `playbackMode`                 | `playback_mode`                   | `CLASSIC` |
+| `playbackModeSelectorSeen`     | `playback_mode_selector_seen`     | `false`   |
+| `playbackAllowTorrentAutopick` | `playback_allow_torrent_autopick` | `false`   |
+| `playbackCodecPreference`      | `playback_codec_preference`       | `ANY`     |
+| `playbackDynamicRangePolicy`   | `playback_dynamic_range_policy`   | `ANY`     |
+| `playbackAudioPreference`      | `playback_audio_preference`       | `ANY`     |
+| `playbackLanguageStrictness`   | `playback_language_strictness`    | `REQUIRE` |
+| `playbackQualityCeilingMbps`   | `playback_quality_ceiling_mbps`   | `0` (off) |
 
 ⚠ **Coerce on read, never on write** (`PlaybackMode.coerceSelectable`). A profile whose stored
 mode is withdrawn keeps its stored key and gets the mode back when it returns. Rewriting
@@ -191,7 +224,7 @@ phase after it can be put on a TV the day it is written rather than at the end.
   that `scripts/appMetadata.mjs` syncs into `appinfo.json`.
 - The unsigned Tizen package (`package:tizen`, not `package:tizen:store`) is the debug one.
 
-*Done when:* a dispatch produces a `debug-v*` prerelease carrying a WGT and an IPK, and
+_Done when:_ a dispatch produces a `debug-v*` prerelease carrying a WGT and an IPK, and
 `/releases/latest` still answers with the last stable release.
 
 ### Phase A — facts and ranking (no user-visible change)
@@ -199,7 +232,7 @@ phase after it can be put on a TV the day it is written rather than at the end.
 Port §3a rows 1–4: `releaseTags`, `languageCodes`, `sourceFacts`, `sourceRanking`. Nothing
 consumes them yet. Verified against real stream payloads captured from a live addon set.
 
-*Done when:* a captured stream list produces facts whose resolution, size, release group,
+_Done when:_ a captured stream list produces facts whose resolution, size, release group,
 dynamic range and language claims match what the mobile extractor produces for the same input.
 That comparison is the acceptance test and it is worth building the harness for — a wrong
 extractor makes every downstream decision confidently wrong.
@@ -224,7 +257,7 @@ Also in this phase, because Streamlined dead-ends without them:
   `PLAYBACK_PROGRESS_STALL_GRACE_MS = 1_500`, both wall-clock backstops on waits this app does
   not own.
 
-*Done when:* Classic behaves exactly as it does today, and Streamlined plays on a real Tizen and
+_Done when:_ Classic behaves exactly as it does today, and Streamlined plays on a real Tizen and
 a real webOS device off a `debug-v*` build.
 
 ### Phase C — the connection figure
@@ -235,11 +268,11 @@ a ranged-GET probe against the host that will actually serve the chosen card
 settled-before-shown gate, and its over-connection warning.
 
 `ThroughputWindow` is the load-bearing part and the reason a mean is not acceptable: a ranged
-GET's mean rate is mostly TCP slow start, and it under-reads *worse* the faster the line is.
+GET's mean rate is mostly TCP slow start, and it under-reads _worse_ the faster the line is.
 The reported case on mobile was a 57 Mb/s reading on a line streaming an 81 Mb/s remux without
 a stall.
 
-The buffer-based meter has a *better* input on web than on mobile: `video.buffered.end(n)` is
+The buffer-based meter has a _better_ input on web than on mobile: `video.buffered.end(n)` is
 exactly the `bufferedPositionMs` the Kotlin meter wants, with no player bridge in between.
 
 ### Phase D — Instant
@@ -256,7 +289,7 @@ deciding, `playback_quality_ceiling_mbps` holds what it picks, and a dead source
 capped chain with the same naming overlay. Nothing on this list needs re-deciding on the web;
 it needs translating.
 
-*Done when:* Instant has been **watched running on a device** off a `debug-v*` build. Mobile's
+_Done when:_ Instant has been **watched running on a device** off a `debug-v*` build. Mobile's
 status file records that Instant has never once been watched running — that is the one thing
 from mobile this port must not inherit.
 
@@ -311,15 +344,17 @@ mode this section exists to prevent.
    which is exactly what `entry<StreamRoute>` had to do on mobile.
 4. **The failure chain keeps the stream route alive under the player.** On mobile that cost a
    real bug: `NavDisplay` composes only the top entry, so every plain `remember` was lost on
-   hand-off, and the decision had to be *carried* (`PlaybackRouteDecision.key`) rather than
+   hand-off, and the decision had to be _carried_ (`PlaybackRouteDecision.key`) rather than
    re-derived — re-deriving answers `ReuseLastLink` where it first answered `AutoPick`, because
    the play has just written a reuse-last-link entry. This repo's `routeStateStore.js` is where
    the carried key belongs.
 5. **P2P/torrent asymmetry across targets.** `allowTorrentSources` must come from platform
    capability, not only from the setting: the public Samsung Store profile ships without
    EngineFS, so on it the torrent branch is unreachable regardless of what the user chose.
-6. **CONTRIBUTING forbids exactly this class of change without approval.** Get it in writing
-   before the PR.
+6. **Drifting from the Kotlin while "improving" it.** The port's whole value is that the logic
+   is already verified. A cleaner-looking rewrite of a guard clause is a new, unverified rule.
+   Port first, and raise anything that looks wrong as a question rather than fixing it in
+   flight.
 
 ---
 
@@ -337,11 +372,11 @@ Nothing blocking. Two things to settle when they are first reached rather than n
 
 ## 8. Execution ledger — update in the same commit as the code
 
-| Phase | State | Notes |
-| --- | --- | --- |
-| 0 — debug line | not started | |
-| A — facts and ranking | not started | |
-| B — mode plumbing + Streamlined | not started | |
-| C — connection figure | not started | |
-| D — Instant | not started | |
-| E — Tizen 4 verification | not started | |
+| Phase                           | State       | Notes |
+| ------------------------------- | ----------- | ----- |
+| 0 — debug line                  | not started |       |
+| A — facts and ranking           | not started |       |
+| B — mode plumbing + Streamlined | not started |       |
+| C — connection figure           | not started |       |
+| D — Instant                     | not started |       |
+| E — Tizen 4 verification        | not started |       |

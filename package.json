@@ -20,6 +20,7 @@
     "format:check": "prettier --check .",
     "serve": "node ./scripts/serve.mjs",
     "sync": "node ./scripts/sync-wrapper.mjs",
+    "test": "node --test \"tests/**/*.test.mjs\"",
     "sync:tizen": "node ./scripts/sync-wrapper.mjs --tizen",
     "sync:webos": "node ./scripts/sync-wrapper.mjs --webos"
   },
