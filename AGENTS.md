@@ -36,6 +36,12 @@ git config merge.ours.driver true
 git config rerere.enabled true
 ```
 
+**`merge=ours` only fires on a _conflict_.** A version file we have not touched since the fork base
+merges cleanly and silently takes upstream's value -- this is exactly what happens to `appinfo.json`
+on web and to the (stale, unused) `iosApp/Configuration/Version.xcconfig` on desktop. After every
+sync, re-check the version files by eye before cutting a release; the attribute protects the files
+we edit, not the files we ignore.
+
 The three Z clients are `nuvio-z` (Android/iOS), `NuvioZDesktop`, and this one. **They do not carry
 the same features, and a port from one of the others is not finished by making it compile.**
 What is deliberately absent here, with the reason, so nobody re-derives it as missing work:

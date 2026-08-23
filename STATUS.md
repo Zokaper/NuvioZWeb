@@ -12,6 +12,31 @@ Last updated: 2026-08-22
 | Verified             | `npm test` **177 tests, zero failures**; `npm run build` green; `npm run format:check` clean; both package globs build locally                                                                                                                                                  |
 | **Not** verified     | **nothing from the port has been watched running**, in a browser or on a television. Streamlined is wired and reachable, so the next thing to do is look at it. The debug workflow has never been dispatched, so its YAML is unproven beyond a local build of the same commands |
 
+## Upstream drift, measured for the first time (2026-08-23)
+
+|                  |                                                                    |
+| ---------------- | ------------------------------------------------------------------ |
+| Upstream ref     | `upstream/main` (`NuvioMedia/NuvioWeb`), push disabled             |
+| Ahead / behind   | **12 ahead, 20 behind** (upstream tip `f9a546a`, vanilla `0.3.40`) |
+| Patch surface    | **7** upstream-owned files we modify                               |
+| Conflict surface | **3** - the subset upstream has also touched since `0.c3bafc`      |
+| Dry-run merge    | **zero conflicts**                                                 |
+
+The patch surface is `css/components.css`, `js/core/profile/profileSettingsSyncService.js`,
+`js/data/local/playerSettingsStore.js`, `js/ui/screens/settings/settingsScreen.js`,
+`js/ui/screens/stream/streamScreen.js`, `package.json`, `res/values/strings.xml`. Of those,
+upstream has moved `css/components.css`, `js/ui/screens/stream/streamScreen.js` and `package.json`.
+
+**This repository is the proof the mod doctrine works.** 34 files changed, only 7 of them
+upstream-owned, and a clean merge - because the port was built as new modules plus minimal seams.
+Mobile's 128-file patch surface is what happens without that discipline.
+
+Run `scripts/upstream-drift.sh` for the current numbers; `upstream-drift.yml` trends them weekly
+into a pinned issue.
+
+⚠ **`merge=ours` only fires on a conflict.** `appinfo.json` is unmodified since the fork base, so
+the dry-run merge silently moved it to `0.3.40`. Re-check it by eye after every sync.
+
 ## Where the port stands
 
 `PLAYBACK_MODES_WEB_PLAN.md` carries the phase ledger and is the file to read first. In short:
