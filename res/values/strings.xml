@@ -2817,6 +2817,15 @@
     <!-- Playback modes. Ported from nuvio-z; these keys share its namespace verbatim, so a
          translation that exists there drops in here unchanged. The metered/data-saver strings
          and the per-mode download lines are deliberately absent - see AGENTS.md. -->
+    <!-- ================================================================
+         NUVIO Z STRINGS - everything below this line is ours.
+
+         Keep this block CONTIGUOUS and keep it LAST. Nuvio Z is a mod, and
+         upstream churns this file with every locale it adds; interleaving our
+         strings with theirs turns a mechanical merge into a hand-resolved one.
+         In the mobile repo this file carries 47 of our commits and is the worst
+         conflict file we have. Append here; never insert above.
+         ================================================================ -->
     <string name="playback_mode_selector_title">How should Nuvio pick sources?</string>
     <string name="playback_mode_selector_subtitle">Choose how much of the choice Nuvio makes for you. You can change this any time in Settings.</string>
     <string name="playback_mode_selector_recommendation">Instant for simplicity, Streamlined for control, Classic if the automatic source chooser does not do well with your preferred plugins or debrid.</string>
@@ -2887,4 +2896,5 @@
     <string name="playback_sticky_description">Nuvio will prefer this release for the remaining episodes when it is available.</string>
     <string name="playback_sticky_use">Use for season</string>
     <string name="playback_sticky_once">Just this episode</string>
+    <string name="settings.about.basedOn">Based on Nuvio {base}</string>
 </resources>

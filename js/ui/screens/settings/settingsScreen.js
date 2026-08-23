@@ -100,6 +100,7 @@ const SETTINGS_MARQUEE_VELOCITY_PX_PER_SECOND = 90; // ATV 45dp/s -> 90px/s
 const CURRENT_APP_VERSION =
   typeof __NUVIO_APP_VERSION__ !== "undefined" ? __NUVIO_APP_VERSION__ : "0.0.0";
 const SETTINGS_VERSION_LABEL = formatSettingsVersionLabel(CURRENT_APP_VERSION);
+const SETTINGS_VANILLA_BASE = formatVanillaBaseLabel(CURRENT_APP_VERSION);
 const PRIVACY_URL = "https://nuvio.tv/privacy-policy";
 
 function formatHalfStepSettingValue(value, suffix = "") {
@@ -789,6 +790,24 @@ function formatSettingsVersionLabel(value) {
     return shortMatch[1];
   }
   return normalized || "0.0.0";
+}
+
+/**
+ * The vanilla Nuvio release this build is a mod of, or null when there is none.
+ *
+ * Nuvio Z is a mod, not a separate product: a Nuvio Z version is a vanilla version
+ * plus a Z revision, so 0.3.40-z1 is "Nuvio Z, revision 1, built on Nuvio 0.3.40".
+ * About says so out loud, because "0.3.40-z1" on its own tells a user nothing about
+ * which upstream release they actually have underneath.
+ *
+ * Returns null for a plain vanilla-numbered build, so nothing is claimed that is
+ * not true - a build with no -z suffix is not a Z release on a stated base.
+ */
+function formatVanillaBaseLabel(value) {
+  const match = String(value || "")
+    .trim()
+    .match(/^(.+?)-z\d+/i);
+  return match ? match[1] : null;
 }
 
 function t(key, params = {}, fallback = key) {
@@ -7209,6 +7228,17 @@ export const SettingsScreen = {
           <p class="settings-about-copy">${t("settings.about.madeWithLove")}</p>
           <p class="settings-about-copy">${t("settings.about.version", { version: SETTINGS_VERSION_LABEL })}</p>
           <p class="settings-about-copy">${t("settings.about.portedBy")}</p>
+          ${
+            SETTINGS_VANILLA_BASE
+              ? `<p class="settings-about-copy">${escapeHtml(
+                  t(
+                    "settings.about.basedOn",
+                    { base: SETTINGS_VANILLA_BASE },
+                    `Based on Nuvio ${SETTINGS_VANILLA_BASE}`
+                  )
+                )}</p>`
+              : ""
+          }
         </div>
         <div class="settings-stack">
           ${this.renderActionRow({
