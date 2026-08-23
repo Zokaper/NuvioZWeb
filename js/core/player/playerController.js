@@ -22,14 +22,16 @@ import {
 import { WebOsLunaService } from "../../platform/webos/webosLunaService.js";
 import { WebOSPlayerExtensions } from "../../platform/webos/webosPlayerExtensions.js";
 import { loadStreamingLibs } from "../../runtime/loadStreamingLibs.js";
+import { WATCH_PROGRESS_UNKNOWN_DURATION_PERCENT } from "../../domain/model/watchProgress.js";
+import { parseAspectRatio } from "./playerAspect.js";
 
 const MIN_PROGRESS_SYNC_DURATION_MS = 1000;
 const WEBOS_AUDIO_TRACK_SELECTION_TIMEOUT_MS = 4000;
 const AVPLAY_BUFFER_FOR_PLAY_SECONDS = 5;
 const AVPLAY_BUFFER_FOR_RESUME_SECONDS = 4;
 const AVPLAY_BUFFERING_TIMEOUT_SECONDS = 10;
-const HLS_TRANSIENT_LEVEL_404_RETRY_LIMIT = 2;
-const HLS_TRANSIENT_LEVEL_404_RETRY_BASE_DELAY_MS = 1500;
+const HLS_TRANSIENT_PLAYLIST_404_RETRY_LIMIT = 2;
+const HLS_TRANSIENT_PLAYLIST_404_RETRY_BASE_DELAY_MS = 1500;
 
 function logEngineFsDebug(...args) {
   if (globalThis.__NUVIO_DEBUG_ENGINEFS__) {
@@ -172,6 +174,8 @@ export const PlayerController = {
   avplayEnded: false,
   avplayCurrentTimeMs: 0,
   avplayDurationMs: 0,
+  avplaySeekRequestToken: 0,
+  avplaySeekInFlight: false,
   avplayTrackSyncAt: 0,
   lastPlaybackErrorCode: 0,
   lastHlsErrorDiagnostic: null,
@@ -404,6 +408,9 @@ export const PlayerController = {
   getAvPlayState() {
     if (!this.isUsingAvPlay()) {
       return "";
+    }
+    if (this.avplaySeekInFlight) {
+      return "SEEKING";
     }
     const avplay = this.getAvPlay();
     if (!avplay) {
@@ -842,7 +849,7 @@ export const PlayerController = {
   },
 
   refreshAvPlayTimeline() {
-    if (!this.isUsingAvPlay()) {
+    if (!this.isUsingAvPlay() || this.avplaySeekInFlight) {
       return;
     }
     const avplay = this.getAvPlay();
@@ -1005,6 +1012,9 @@ export const PlayerController = {
       this.selectedAvPlayAudioTrackIndex = -1;
       this.selectedAvPlaySubtitleTrackIndex = -1;
       this.avplayTrackSyncAt = 0;
+      return;
+    }
+    if (this.avplaySeekInFlight) {
       return;
     }
 
@@ -1238,6 +1248,9 @@ export const PlayerController = {
   },
 
   getCurrentAvPlayAudioTrackIndex() {
+    if (this.avplaySeekInFlight) {
+      return -1;
+    }
     const avplay = this.getAvPlay();
     if (!avplay || typeof avplay.getCurrentStreamInfo !== "function") {
       return -1;
@@ -1295,6 +1308,9 @@ export const PlayerController = {
   },
 
   retryAvPlayAudioTrackSelection(trackIndex) {
+    if (this.avplaySeekInFlight) {
+      return false;
+    }
     const canonicalIndex = this.resolveAvPlayAudioTrackIndex(trackIndex);
     if (canonicalIndex < 0) {
       return false;
@@ -1339,6 +1355,13 @@ export const PlayerController = {
   },
 
   getAvPlaySubtitleDiagnosticSnapshot() {
+    if (this.avplaySeekInFlight) {
+      return {
+        state: "SEEKING",
+        rawTrackIndex: -1,
+        canonicalTrackIndex: -1
+      };
+    }
     const avplay = this.getAvPlay();
     const snapshot = {
       state: this.getAvPlayState(),
@@ -1390,6 +1413,9 @@ export const PlayerController = {
   },
 
   applyAvPlaySubtitleRenderMode(renderMode = this.avplaySubtitleRenderMode) {
+    if (this.avplaySeekInFlight) {
+      return false;
+    }
     const mode = normalizeAvPlaySubtitleRenderMode(renderMode);
     this.avplaySubtitleRenderMode = mode;
     const avplay = this.getAvPlay();
@@ -1491,6 +1517,9 @@ export const PlayerController = {
     trackIndex,
     { force = false, nudge = false, renderMode = this.avplaySubtitleRenderMode } = {}
   ) {
+    if (this.avplaySeekInFlight) {
+      return false;
+    }
     const canonicalIndex = this.resolveAvPlaySubtitleTrackIndex(trackIndex);
     if (canonicalIndex < 0) {
       return false;
@@ -1774,6 +1803,9 @@ export const PlayerController = {
   },
 
   nudgeAvPlayAfterTrackSwitch() {
+    if (this.avplaySeekInFlight) {
+      return;
+    }
     const avplay = this.getAvPlay();
     if (!avplay || typeof avplay.seekTo !== "function") {
       return;
@@ -1784,7 +1816,7 @@ export const PlayerController = {
         Number(avplay.getCurrentTime?.() || this.avplayCurrentTimeMs || 0)
       );
       if (Number.isFinite(currentMs) && currentMs > 0) {
-        avplay.seekTo(Math.max(0, currentMs - 1));
+        this.seekAvPlayTo(Math.max(0, currentMs - 1), { emitEvents: false });
       }
     } catch (_) {
       // Track switching is still valid without a seek nudge.
@@ -2065,6 +2097,9 @@ export const PlayerController = {
   },
 
   applyAvPlayExternalSubtitleDelay() {
+    if (this.avplaySeekInFlight) {
+      return false;
+    }
     const path = String(this.avplayExternalSubtitlePath || "").trim();
     if (!this.isUsingAvPlay() || !path) {
       return false;
@@ -2128,6 +2163,28 @@ export const PlayerController = {
       extraInfo.videoHeight,
       extraInfo.video_height
     ];
+    const displayAspectCandidates = [
+      videoTrack.display_aspect_ratio,
+      videoTrack.displayAspectRatio,
+      videoTrack.video_aspect_ratio,
+      videoTrack.videoAspectRatio,
+      videoTrack.dar,
+      videoTrack.aspect,
+      extraInfo.display_aspect_ratio,
+      extraInfo.displayAspectRatio,
+      extraInfo.video_aspect_ratio,
+      extraInfo.videoAspectRatio,
+      extraInfo.dar,
+      extraInfo.aspect
+    ];
+    const pixelAspectCandidates = [
+      videoTrack.pixel_aspect_ratio,
+      videoTrack.pixelAspectRatio,
+      videoTrack.par,
+      extraInfo.pixel_aspect_ratio,
+      extraInfo.pixelAspectRatio,
+      extraInfo.par
+    ];
     let width =
       widthCandidates.map(Number).find((value) => Number.isFinite(value) && value > 0) || 0;
     let height =
@@ -2146,7 +2203,16 @@ export const PlayerController = {
         height = Number(match[2]);
       }
     }
-    return width > 0 && height > 0 ? { width, height } : null;
+    if (!width || !height) {
+      return null;
+    }
+    const displayAspect = displayAspectCandidates.map(parseAspectRatio).find(Boolean) || null;
+    const pixelAspect = pixelAspectCandidates.map(parseAspectRatio).find(Boolean) || 1;
+    return {
+      width,
+      height,
+      aspect: displayAspect || (width / height) * pixelAspect
+    };
   },
 
   mapAvPlayErrorToMediaCode(errorValue) {
@@ -2312,6 +2378,8 @@ export const PlayerController = {
   },
 
   teardownAvPlay() {
+    this.avplaySeekRequestToken = Number(this.avplaySeekRequestToken || 0) + 1;
+    this.avplaySeekInFlight = false;
     const avplay = this.getAvPlay();
 
     this.stopAvPlayTickTimer();
@@ -2494,6 +2562,9 @@ export const PlayerController = {
           if (!this.isPlaybackRequestActive(playToken, url)) {
             return;
           }
+          if (this.avplaySeekInFlight) {
+            return;
+          }
           this.avplayReady = true;
           this.reapplyAvPlayPlaybackRate();
           this.retryPendingAvPlayStartupAudioTrackSelection();
@@ -2502,6 +2573,9 @@ export const PlayerController = {
         },
         oncurrentplaytime: (currentTimeMs) => {
           if (!this.isPlaybackRequestActive(playToken, url)) {
+            return;
+          }
+          if (this.avplaySeekInFlight) {
             return;
           }
           const value = Number(currentTimeMs || 0);
@@ -2550,6 +2624,10 @@ export const PlayerController = {
         onerror: (errorValue) => {
           if (!this.isPlaybackRequestActive(playToken, url)) {
             return;
+          }
+          if (this.avplaySeekInFlight) {
+            this.avplaySeekInFlight = false;
+            this.avplaySeekRequestToken = Number(this.avplaySeekRequestToken || 0) + 1;
           }
           this.avplayReady = false;
           this.isPlaying = false;
@@ -2692,6 +2770,99 @@ export const PlayerController = {
     return null;
   },
 
+  seekAvPlayTo(targetMs, { emitEvents = true } = {}) {
+    if (!this.isUsingAvPlay() || this.avplaySeekInFlight) {
+      return false;
+    }
+
+    const avplay = this.getAvPlay();
+    if (!avplay) {
+      return false;
+    }
+
+    const normalizedTargetMs = Math.max(0, Math.floor(Number(targetMs) || 0));
+    const seekToken = Number(this.avplaySeekRequestToken || 0) + 1;
+    const shouldRestartTick = Boolean(this.avplayTickTimer || this.isPlaying);
+    let settled = false;
+    this.avplaySeekRequestToken = seekToken;
+    this.avplaySeekInFlight = true;
+    this.stopAvPlayTickTimer();
+
+    if (emitEvents) {
+      this.avplayReady = false;
+      this.emitVideoEvent("waiting", { playbackEngine: this.playbackEngine });
+      this.emitVideoEvent("seeking", { playbackEngine: this.playbackEngine });
+    }
+    this.avplayCurrentTimeMs = normalizedTargetMs;
+    if (emitEvents) {
+      this.emitVideoEvent("timeupdate", { playbackEngine: this.playbackEngine });
+    }
+
+    const settle = (success, errorValue = null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (seekToken !== Number(this.avplaySeekRequestToken || 0) || !this.isUsingAvPlay()) {
+        return;
+      }
+
+      this.avplaySeekInFlight = false;
+      this.refreshAvPlayTimeline();
+      this.avplayReady = true;
+      this.reapplyAvPlayPlaybackRate();
+      this.retryPendingAvPlayStartupAudioTrackSelection();
+      this.applyPendingAvPlayAudioTrackSelection();
+      this.applyPendingAvPlaySubtitleTrackSelection();
+      this.applyAvPlayExternalSubtitleDelay();
+      if (shouldRestartTick) {
+        this.startAvPlayTickTimer();
+      }
+      if (!success) {
+        logTizenAvPlayDebug("Tizen AVPlay seek failed", {
+          targetMs: normalizedTargetMs,
+          error: errorValue?.message || String(errorValue || "")
+        });
+      }
+      if (emitEvents) {
+        if (success) {
+          this.emitVideoEvent("seeked", { playbackEngine: this.playbackEngine });
+        }
+        this.emitVideoEvent("canplay", { playbackEngine: this.playbackEngine });
+      }
+    };
+
+    try {
+      if (typeof avplay.seekTo === "function") {
+        // Samsung documents seekTo as asynchronous: no other AVPlay API may
+        // be called until one of these callbacks has completed the seek.
+        avplay.seekTo(
+          normalizedTargetMs,
+          () => settle(true),
+          (errorValue) => settle(false, errorValue)
+        );
+      } else {
+        const currentMs = Number(avplay.getCurrentTime?.() || 0);
+        if (normalizedTargetMs > currentMs && typeof avplay.jumpForward === "function") {
+          avplay.jumpForward(normalizedTargetMs - currentMs);
+          settle(true);
+        } else if (normalizedTargetMs < currentMs && typeof avplay.jumpBackward === "function") {
+          avplay.jumpBackward(currentMs - normalizedTargetMs);
+          settle(true);
+        } else if (normalizedTargetMs === currentMs) {
+          settle(true);
+        } else {
+          settle(false, "seek_not_supported");
+          return false;
+        }
+      }
+      return true;
+    } catch (error) {
+      settle(false, error);
+      return false;
+    }
+  },
+
   seekToSeconds(targetSeconds) {
     const seconds = Number(targetSeconds || 0);
     if (!Number.isFinite(seconds) || seconds < 0) {
@@ -2706,42 +2877,7 @@ export const PlayerController = {
       return true;
     }
 
-    const avplay = this.getAvPlay();
-    if (!avplay) {
-      return false;
-    }
-
-    const targetMs = Math.max(0, Math.floor(seconds * 1000));
-    try {
-      this.avplayReady = false;
-      this.emitVideoEvent("waiting", { playbackEngine: this.playbackEngine });
-      this.emitVideoEvent("seeking", { playbackEngine: this.playbackEngine });
-      if (typeof avplay.seekTo === "function") {
-        avplay.seekTo(targetMs);
-      } else {
-        const currentMs = Number(avplay.getCurrentTime?.() || 0);
-        if (targetMs > currentMs) {
-          avplay.jumpForward?.(targetMs - currentMs);
-        } else if (targetMs < currentMs) {
-          avplay.jumpBackward?.(currentMs - targetMs);
-        }
-      }
-      this.avplayCurrentTimeMs = targetMs;
-      this.emitVideoEvent("timeupdate", { playbackEngine: this.playbackEngine });
-      setTimeout(() => {
-        if (!this.isUsingAvPlay()) {
-          return;
-        }
-        this.refreshAvPlayTimeline();
-        this.avplayReady = true;
-        this.reapplyAvPlayPlaybackRate();
-        this.emitVideoEvent("seeked", { playbackEngine: this.playbackEngine });
-        this.emitVideoEvent("canplay", { playbackEngine: this.playbackEngine });
-      }, 120);
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return this.seekAvPlayTo(Math.max(0, Math.floor(seconds * 1000)));
   },
 
   isPlaybackEnded() {
@@ -2915,11 +3051,17 @@ export const PlayerController = {
     const normalized = String(itemType || "")
       .trim()
       .toLowerCase();
+    const hasEpisodeIdentity =
+      this.currentSeason != null &&
+      this.currentEpisode != null &&
+      Number.isFinite(Number(this.currentSeason)) &&
+      Number.isFinite(Number(this.currentEpisode));
     return (
       normalized === "channel" ||
       normalized === "live" ||
       normalized === "tvchannel" ||
-      normalized === "stream"
+      normalized === "stream" ||
+      (normalized === "tv" && !hasEpisodeIdentity)
     );
   },
 
@@ -3290,18 +3432,30 @@ export const PlayerController = {
     this.playbackEngine = "hls.js";
     let networkRecoveryAttempts = 0;
     let mediaRecoveryAttempts = 0;
-    let transientLevelNotFoundRetries = 0;
-    let transientLevelNotFoundRetryTimer = null;
+    const transientPlaylist404Retries = {
+      levelLoadError: 0,
+      audioTrackLoadError: 0
+    };
+    let transientPlaylist404RetryDetails = null;
+    let transientPlaylist404RetryTimer = null;
 
-    const clearTransientLevelNotFoundRetry = () => {
-      if (transientLevelNotFoundRetryTimer) {
-        clearTimeout(transientLevelNotFoundRetryTimer);
-        transientLevelNotFoundRetryTimer = null;
+    const clearTransientPlaylist404Retry = () => {
+      if (transientPlaylist404RetryTimer) {
+        clearTimeout(transientPlaylist404RetryTimer);
+        transientPlaylist404RetryTimer = null;
+      }
+      transientPlaylist404RetryDetails = null;
+    };
+
+    const resetTransientPlaylist404Retry = (details) => {
+      transientPlaylist404Retries[details] = 0;
+      if (transientPlaylist404RetryDetails === details) {
+        clearTransientPlaylist404Retry();
       }
     };
 
     const emitFatalHlsNetworkError = (data = {}, responseCode = 0) => {
-      clearTransientLevelNotFoundRetry();
+      clearTransientPlaylist404Retry();
       this.lastPlaybackErrorCode = 2;
       this.teardownHlsInstance();
       this.emitVideoEvent("error", {
@@ -3313,34 +3467,36 @@ export const PlayerController = {
       });
     };
 
-    const scheduleTransientLevelNotFoundRetry = () => {
-      transientLevelNotFoundRetries += 1;
-      const retryAttempt = transientLevelNotFoundRetries;
-      const retryDelayMs = HLS_TRANSIENT_LEVEL_404_RETRY_BASE_DELAY_MS * retryAttempt;
-      clearTransientLevelNotFoundRetry();
-      console.warn("[Nuvio playback] retrying transient HLS level 404", {
+    const scheduleTransientPlaylist404Retry = (details) => {
+      const retryAttempt = (transientPlaylist404Retries[details] || 0) + 1;
+      transientPlaylist404Retries[details] = retryAttempt;
+      const retryDelayMs = HLS_TRANSIENT_PLAYLIST_404_RETRY_BASE_DELAY_MS * retryAttempt;
+      clearTransientPlaylist404Retry();
+      transientPlaylist404RetryDetails = details;
+      console.warn("[Nuvio playback] retrying transient HLS playlist 404", {
+        details,
         attempt: retryAttempt,
-        limit: HLS_TRANSIENT_LEVEL_404_RETRY_LIMIT,
+        limit: HLS_TRANSIENT_PLAYLIST_404_RETRY_LIMIT,
         delayMs: retryDelayMs
       });
-      transientLevelNotFoundRetryTimer = setTimeout(() => {
-        transientLevelNotFoundRetryTimer = null;
+      transientPlaylist404RetryTimer = setTimeout(() => {
+        transientPlaylist404RetryTimer = null;
         if (!this.isPlaybackRequestActive(playToken, url) || this.hlsInstance !== hls) {
           return;
         }
         try {
-          // Reload the master manifest as bridge-generated level URLs can be
+          // Reload the master manifest as bridge-generated playlist URLs can be
           // temporarily unavailable or stale while a live window advances.
           hls.loadSource(url);
         } catch (error) {
-          console.warn("HLS level 404 retry failed", error);
+          console.warn("HLS playlist 404 retry failed", error);
           this.lastPlaybackErrorCode = 2;
           this.teardownHlsInstance();
           this.emitVideoEvent("error", {
             playbackEngine: "hls.js",
             mediaErrorCode: 2,
             hlsErrorType: "networkError",
-            hlsErrorDetails: "levelLoadError"
+            hlsErrorDetails: details
           });
         }
       }, retryDelayMs);
@@ -3351,17 +3507,39 @@ export const PlayerController = {
         return;
       }
       this.captureHlsErrorDiagnostic(data);
+      const responseCode = Number(data?.response?.code || data?.networkDetails?.status || 0);
+      const hlsErrorDetails = String(data?.details || "");
+      const isTransientPlaylist404 =
+        data.type === Hls.ErrorTypes.NETWORK_ERROR &&
+        responseCode === 404 &&
+        (hlsErrorDetails === "levelLoadError" || hlsErrorDetails === "audioTrackLoadError");
+      // hls.js reports an alternate-audio 404 as non-fatal. Recover only while
+      // startup has no media data; established playback must not be restarted
+      // because an optional track briefly disappears.
+      const isStartupAudioPlaylist404 =
+        !data?.fatal &&
+        isTransientPlaylist404 &&
+        hlsErrorDetails === "audioTrackLoadError" &&
+        Number(this.video?.readyState || 0) === 0 &&
+        !this.isPlaying;
+      if (isStartupAudioPlaylist404) {
+        if (
+          transientPlaylist404Retries[hlsErrorDetails] < HLS_TRANSIENT_PLAYLIST_404_RETRY_LIMIT &&
+          !transientPlaylist404RetryTimer
+        ) {
+          scheduleTransientPlaylist404Retry(hlsErrorDetails);
+        }
+        return;
+      }
       if (!data?.fatal) {
         return;
       }
       if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-        const responseCode = Number(data?.response?.code || data?.networkDetails?.status || 0);
         if (
-          String(data?.details || "") === "levelLoadError" &&
-          responseCode === 404 &&
-          transientLevelNotFoundRetries < HLS_TRANSIENT_LEVEL_404_RETRY_LIMIT
+          isTransientPlaylist404 &&
+          transientPlaylist404Retries[hlsErrorDetails] < HLS_TRANSIENT_PLAYLIST_404_RETRY_LIMIT
         ) {
-          scheduleTransientLevelNotFoundRetry();
+          scheduleTransientPlaylist404Retry(hlsErrorDetails);
           return;
         }
         if (isTerminalHlsHttpStatus(responseCode)) {
@@ -3411,9 +3589,13 @@ export const PlayerController = {
     });
 
     hls.on(Hls.Events.LEVEL_LOADED, () => {
-      clearTransientLevelNotFoundRetry();
-      transientLevelNotFoundRetries = 0;
+      resetTransientPlaylist404Retry("levelLoadError");
     });
+    if (Hls.Events.AUDIO_TRACK_LOADED) {
+      hls.on(Hls.Events.AUDIO_TRACK_LOADED, () => {
+        resetTransientPlaylist404Retry("audioTrackLoadError");
+      });
+    }
 
     hls.on(Hls.Events.MEDIA_ATTACHED, () => {
       if (!this.isPlaybackRequestActive(playToken, url)) {
@@ -3819,7 +4001,7 @@ export const PlayerController = {
   },
 
   reapplyAvPlayPlaybackRate() {
-    if (!this.isUsingAvPlay()) {
+    if (!this.isUsingAvPlay() || this.avplaySeekInFlight) {
       return false;
     }
     const targetSpeed = this.normalizePlaybackRate(this.desiredPlaybackRate);
@@ -4413,9 +4595,10 @@ export const PlayerController = {
       this.syncWebOsPlaybackKeepAwake();
       const context = this.createProgressContext();
       const durationMs = Math.floor(this.getDurationSeconds() * 1000);
-      const completedMs =
-        durationMs > 0 ? durationMs : Math.floor(this.getCurrentTimeSeconds() * 1000);
-      this.flushProgress(completedMs, durationMs > 0 ? durationMs : completedMs, false, context);
+      const positionMs = Math.floor(this.getCurrentTimeSeconds() * 1000);
+      // Android keeps an unknown-duration playback in progress. Do not turn
+      // the current live position into a synthetic finite duration here.
+      this.flushProgress(positionMs, durationMs, false, context);
     });
 
     this.video.addEventListener("error", (e) => {
@@ -5166,7 +5349,8 @@ export const PlayerController = {
       // source instead of reopening the stream picker.
       streamIdentity: active.streamIdentity || null,
       positionMs: Math.max(0, Math.trunc(safePosition)),
-      durationMs: hasFiniteDuration ? Math.max(0, Math.trunc(safeDuration)) : 0
+      durationMs: hasFiniteDuration ? Math.max(0, Math.trunc(safeDuration)) : 0,
+      progressPercent: hasFiniteDuration ? null : WATCH_PROGRESS_UNKNOWN_DURATION_PERCENT
     });
     if (!allowCloudSync) {
       return true;

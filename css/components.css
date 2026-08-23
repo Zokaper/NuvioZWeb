@@ -13327,7 +13327,7 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
 }
 
-.player-next-episode-card-inner.is-playable {
+.player-next-episode-card-inner.focusable {
   pointer-events: auto;
   cursor: pointer;
 }
@@ -15689,6 +15689,30 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   border-radius: 50%;
   background: #2a2f37 center center / cover no-repeat;
   margin-bottom: 10px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.movie-cast-avatar-image {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.movie-cast-avatar-fallback {
+  position: relative;
+  z-index: 0;
+  color: var(--detail-text-primary, #fff);
+  font-size: 56px;
+  font-weight: 700;
 }
 
 .movie-cast-name {
@@ -17729,6 +17753,11 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   align-items: stretch;
   gap: 16px;
   margin-bottom: 18px;
+}
+
+.stream-route-card-row[data-stream-loading-row][hidden],
+.stream-route-empty[data-stream-empty][hidden] {
+  display: none !important;
 }
 
 .stream-route-card-row:last-child {
@@ -19912,11 +19941,6 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   --modern-track-peek-extension: 72px;
   --modern-hero-copy-top-safe: 56px;
   --modern-hero-copy-right: 72px;
-}
-
-.legacy-tizen .home-screen-shell.home-layout-modern .home-modern-rows-viewport {
-  bottom: 28px;
-  height: calc(var(--modern-rows-viewport-height) - 28px);
 }
 
 .legacy-tizen .home-screen-shell.home-layout-modern .home-track {
