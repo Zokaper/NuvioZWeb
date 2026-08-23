@@ -1,0 +1,11 @@
+# Version files: ours always wins on the merge path.
+#
+# Nothing in these is ever worth inheriting from upstream -- their version
+# number is not our version number.
+#
+# REQUIRES, once per clone (machine config, not committed):
+#   git config merge.ours.driver true
+#   git config rerere.enabled true
+# Without the first line the attribute below silently does nothing.
+appinfo.json              merge=ours
+debug-version.properties  merge=ours

@@ -1,4 +1,6 @@
-AGENTS.md
+# AGENTS.md is upstream-ignored, but it is this fork's own operating manual and
+# must survive a fresh clone. Tracked deliberately.
+!AGENTS.md
 .roo
 favicon.svg
 
