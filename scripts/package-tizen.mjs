@@ -4,7 +4,7 @@ import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import JSZip from "jszip";
-import { readAppMetadata, syncVersionFiles } from "./appMetadata.mjs";
+import { normalizePackageVersion, readAppMetadata, syncVersionFiles } from "./appMetadata.mjs";
 import { compatibilityPolicy } from "./compatibilityPolicy.mjs";
 import { writeRuntimeEnvScriptFile } from "./envProperties.mjs";
 
@@ -29,16 +29,9 @@ function isTruthy(value) {
   return /^(1|true|yes|on)$/i.test(String(value || ""));
 }
 
-function normalizeVersion(version) {
-  const parts = String(version || "0.0.0")
-    .replace(/^v/i, "")
-    .split(".")
-    .map((part) => String(Number.parseInt(part, 10) || 0));
-  while (parts.length < 3) {
-    parts.push("0");
-  }
-  return parts.slice(0, 3).join(".");
-}
+// The widget version must be numeric x.y.z, and a Nuvio Z version carries a -z<n>
+// suffix. Shared with the webOS packager so the two cannot drift.
+const normalizeVersion = normalizePackageVersion;
 
 async function pathExists(filePath) {
   try {

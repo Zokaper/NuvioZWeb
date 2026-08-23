@@ -3,7 +3,7 @@ import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
-import { readAppMetadata, syncVersionFiles } from "./appMetadata.mjs";
+import { normalizePackageVersion, readAppMetadata, syncVersionFiles } from "./appMetadata.mjs";
 import { compatibilityPolicy } from "./compatibilityPolicy.mjs";
 import { runWebOsToolsBinary } from "./aresCli.mjs";
 
@@ -178,7 +178,9 @@ ${webOsScriptTag}  <script>
 }
 
 async function stageApp() {
-  const { version } = await readAppMetadata();
+  // appinfo.json's version must be numeric x.y.z -- ares-package reads it directly,
+  // and a Nuvio Z version carries a -z<n> suffix that is not legal there.
+  const version = normalizePackageVersion((await readAppMetadata()).version);
   await cp(distDir, appStageDir, { recursive: true });
 
   const appInfoPath = path.join(appStageDir, "appinfo.json");
@@ -280,7 +282,7 @@ async function packageWebOs() {
   try {
     await runWebOsToolsBinary("ares-package", [appStageDir, serviceStageDir, "--outdir", rootDir]);
   } catch (error) {
-    const { version } = await readAppMetadata();
+    const version = normalizePackageVersion((await readAppMetadata()).version);
     const expectedIpk = path.join(rootDir, `space.nuvio.webos_${version}_all.ipk`);
     if (await pathExists(expectedIpk)) {
       console.warn(
