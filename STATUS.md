@@ -12,6 +12,32 @@ Last updated: 2026-08-22
 | Verified             | `npm test` **177 tests, zero failures**; `npm run build` green; `npm run format:check` clean; both package globs build locally                                                                                                                                                  |
 | **Not** verified     | **nothing from the port has been watched running**, in a browser or on a television. Streamlined is wired and reachable, so the next thing to do is look at it. The debug workflow has never been dispatched, so its YAML is unproven beyond a local build of the same commands |
 
+## The debug line ran for the first time (2026-08-23)
+
+`debug-v0.3.40-z1.5` is published as a prerelease, carrying
+`NuvioTV-Tizen-debug-v0.3.40-z1.5.wgt` (4.47 MB) and
+`NuvioTV-webOS-debug-v0.3.40-z1.5.ipk` (4.33 MB). **This is the first time anything from the
+playback-modes port has been packaged for a television.**
+
+It had never run before, and not because nobody dispatched it: the workflow existed only on a
+feature branch, and `workflow_dispatch` requires the file to be on the **default** branch. It was
+structurally unreachable. `main` now carries the branch, so the workflow is registered - along with
+`upstream-drift.yml`, which will now report weekly.
+
+**The tag is the proof the `-z<n>` scheme survives the whole pipeline.** `debug-v0.3.40-z1.5` is the
+vanilla base, the Z revision and the debug counter in one name, and every stage handled it:
+
+- `appUpdateService.parseZRevision` reads the revision past the debug counter (`0.3.40-z1.5` is
+  revision 1), so the debug line still orders itself on the counter;
+- `normalizePackageVersion` kept the suffix out of the platform manifests - both packages built,
+  which is exactly what would have failed had `appinfo.json` been handed `0.3.40-z1`;
+- the built bundle reports `0.3.40-z1`, and About says _based on Nuvio 0.3.40_.
+
+**Still unwatched.** Nothing here has been on a television yet; a green package is not a working
+one. The things to look at first, in order: Streamlined reachable from the stream screen, the
+first-launch mode selector, and whether the progress overlay appears at all - it is ported but
+**unwired**, so a dead source still dead-ends. That wiring is the next code task.
+
 ## Upstream drift, measured for the first time (2026-08-23)
 
 |                  |                                                                    |
