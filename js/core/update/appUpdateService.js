@@ -1,4 +1,10 @@
-const LATEST_RELEASE_URL = "https://api.github.com/repos/NuvioMedia/NuvioWeb/releases/latest";
+// Nuvio Z is a mod, and it updates from its own release line. Pointing this at
+// upstream would offer a Nuvio Z install a vanilla NuvioWeb package and overwrite
+// the mod with the thing it is a mod of.
+//
+// The debug channel has its own line; see .github/workflows/debug-release.yml.
+export const RELEASE_REPO = "Zokaper/NuvioZWeb";
+const LATEST_RELEASE_URL = `https://api.github.com/repos/${RELEASE_REPO}/releases/latest`;
 const DEFAULT_TIMEOUT_MS = 8000;
 
 export function normalizeAppVersion(raw) {
@@ -25,6 +31,22 @@ export function parseAppVersionParts(raw) {
   return parts.length > 0 ? parts : null;
 }
 
+/**
+ * The Z revision in a `<vanilla>-z<n>` version, or 0 when there is none.
+ *
+ * A Nuvio Z version is a vanilla version plus a Z revision: vanilla ships 0.3.40,
+ * we ship 0.3.40-z1, and iterating on the same base gives -z2, -z3. The revision
+ * resets when the base moves.
+ *
+ * A vanilla-numbered build has no suffix and is revision 0, which is what makes
+ * 0.3.40-z1 newer than 0.3.40 while keeping every pre-adoption version orderable
+ * exactly as before.
+ */
+export function parseZRevision(raw) {
+  const match = normalizeAppVersion(raw).match(/-z(\d+)(?:[.\-_]|$)/i);
+  return match ? Number.parseInt(match[1], 10) : 0;
+}
+
 export function isRemoteAppVersionNewer(remote, local) {
   const remoteParts = parseAppVersionParts(remote);
   const localParts = parseAppVersionParts(local);
@@ -43,6 +65,19 @@ export function isRemoteAppVersionNewer(remote, local) {
       return remotePart > localPart;
     }
   }
+
+  // Same vanilla base, so the Z revision decides.
+  //
+  // Without this the suffix is invisible: parseAppVersionParts splits on `-` and
+  // keeps only leading digits, so "z2" yields nothing and 0.3.40-z2 parses to the
+  // same [0, 3, 40] as 0.3.40-z1. A second Z release on one base would never be
+  // offered to anyone -- which is exactly what the release scheme requires.
+  const remoteRevision = parseZRevision(remote);
+  const localRevision = parseZRevision(local);
+  if (remoteRevision !== localRevision) {
+    return remoteRevision > localRevision;
+  }
+
   return false;
 }
 
