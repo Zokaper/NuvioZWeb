@@ -111,10 +111,16 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            tag_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG_NAME}" --jq '.object.sha')"
+            if [[ "$tag_sha" != "$GITHUB_SHA" ]]; then
+              echo "Release $TAG_NAME points at $tag_sha, not this build's $GITHUB_SHA." >&2
+              exit 1
+            fi
             echo "Release $TAG_NAME already exists; replacing its assets."
             gh release upload "$TAG_NAME" "$TIZEN_PACKAGE" "$WEBOS_PACKAGE" --clobber
           else
             gh release create "$TAG_NAME" \
+              --target "$GITHUB_SHA" \
               --prerelease \
               --title "$TAG_NAME" \
               --notes "Debug build from \`${GITHUB_REF_NAME}\` at \`${GITHUB_SHA}\`.

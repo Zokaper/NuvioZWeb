@@ -6,7 +6,7 @@ Last updated: 2026-08-24
 | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Active branch        | `claude/upstream-doctrine-stage0`                                                                                                                                                                                                                                     |
 | Version in the files | `0.3.40-z1` (`package.json`; platform manifests receive the normalized vanilla-compatible version)                                                                                                                                                                    |
-| Debug counter        | `DEBUG_BUILD=6` in `debug-version.properties`; dispatch target `debug-v0.3.40-z1.6`                                                                                                                                                                                   |
+| Debug counter        | `DEBUG_BUILD=6` in `debug-version.properties`; `debug-v0.3.40-z1.6` published                                                                                                                                                                                         |
 | Forked from          | `NuvioMedia/NuvioWeb` at `0c3bafc` (`chore: finalize TV store scope and remove tests`, 2026-08-22)                                                                                                                                                                    |
 | Current work         | the **playback-modes port** from `nuvio-z` - see `PLAYBACK_MODES_WEB_PLAN.md`                                                                                                                                                                                         |
 | Verified             | `npm test` **192 tests, zero failures**; changed runtime files pass ESLint; `npm run build` and `npm run format:check` green; local browser app-shell smoke has no application errors                                                                                 |
@@ -69,7 +69,7 @@ the dry-run merge silently moved it to `0.3.40`. Re-check it by eye after every 
 
 | Phase                           | State                                                 |
 | ------------------------------- | ----------------------------------------------------- |
-| 0 - debug line                  | complete, never dispatched                            |
+| 0 - debug line                  | complete; `.6` published                              |
 | A - facts and ranking           | complete                                              |
 | B - mode plumbing + Streamlined | **implemented and PC-checked; TV acceptance pending** |
 | C - connection figure           | not started                                           |
@@ -163,6 +163,14 @@ until it is turned on in Settings. Primary metadata comes from the installed add
 enrichment - the modern home layout, artwork upgrades, trailers, more-like-this.
 
 ## Next
+
+Workflow run `32757702323` published both Phase B packages successfully. The Tizen WGT is
+4,469,707 bytes (`sha256:56079d262bcd11492faad0df83b02dbcc82efd7ab7702dc779291dc91282ff8e`)
+and the webOS IPK is 4,331,960 bytes
+(`sha256:d6648bc2afc064757a3a6c0ab859dc59b574161ea4f1a44d319d0b66ca67cc61`).
+The run also exposed that `gh release create` defaults a new tag to the repository's default branch
+unless given `--target`; `.6` was repaired to the build's `57ad994c` commit before any download,
+and the workflow now targets `GITHUB_SHA` and refuses to clobber assets on a mismatched tag.
 
 Install `debug-v0.3.40-z1.6` on one Tizen and one webOS television. Verify the first-launch
 selector, Streamlined quality sheet, a successful automatic start, manual escape, and a forced
