@@ -2,7 +2,6 @@ import { ExperienceModeStore } from "../../../data/local/experienceModeStore.js"
 import { LayoutPreferences } from "../../../data/local/layoutPreferences.js";
 import { ProfileManager } from "../../../core/profile/profileManager.js";
 import { ProfileSettingsSyncService } from "../../../core/profile/profileSettingsSyncService.js";
-import { addonRepository } from "../../../data/repository/addonRepository.js";
 import { I18n } from "../../../i18n/index.js";
 import { Router } from "../../navigation/router.js";
 import { ScreenUtils } from "../../navigation/screen.js";
@@ -75,9 +74,8 @@ export const ExperienceModeSelectionScreen = {
     LayoutPreferences.setForProfile(profileId, { homeLayout: "modern", hasChosenLayout: true });
     ExperienceModeStore.setForProfile(profileId, { mode: "ESSENTIAL" });
     await ProfileSettingsSyncService.push(profileId);
-    const addons = await addonRepository.getInstalledAddons().catch(() => []);
     await Router.navigate(
-      addons.length ? "home" : "essentialAddonSetup",
+      "playbackModeSelection",
       {},
       {
         replaceHistory: true,
@@ -92,8 +90,8 @@ export const ExperienceModeSelectionScreen = {
     ExperienceModeStore.setForProfile(profileId, { mode: "ADVANCED" });
     await ProfileSettingsSyncService.push(profileId);
     await Router.navigate(
-      "home",
-      { forceReload: true },
+      "playbackModeSelection",
+      {},
       { replaceHistory: true, skipStackPush: true }
     );
   },

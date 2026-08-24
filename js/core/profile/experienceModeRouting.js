@@ -1,6 +1,7 @@
 import { addonRepository } from "../../data/repository/addonRepository.js";
 import { ExperienceModeStore } from "../../data/local/experienceModeStore.js";
 import { LayoutPreferences } from "../../data/local/layoutPreferences.js";
+import { PlayerSettingsStore } from "../../data/local/playerSettingsStore.js";
 import { ProfileSettingsSyncService } from "./profileSettingsSyncService.js";
 
 export async function resolveExperienceRoute(profileId) {
@@ -15,6 +16,9 @@ export async function resolveExperienceRoute(profileId) {
 
   if (!experience.mode) {
     return "experienceModeSelection";
+  }
+  if (!PlayerSettingsStore.getForProfile(profileId).playbackModeSelectorSeen) {
+    return "playbackModeSelection";
   }
   if (experience.mode === "ESSENTIAL" && !experience.addonSetupSkipped) {
     const addons = await addonRepository.getInstalledAddons().catch(() => []);

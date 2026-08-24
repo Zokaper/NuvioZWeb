@@ -7,7 +7,7 @@ gets re-derived as missing work if nobody writes it down.
 Canonical feature ledger: `nuvio-z/Docs/Z-FEATURES.md`. The doctrine: `nuvio-z/Docs/UPSTREAM.md`.
 The live phase ledger for the port in progress: `PLAYBACK_MODES_WEB_PLAN.md`.
 
-Last updated 2026-08-23.
+Last updated 2026-08-24.
 
 ## Why the answer differs from mobile's
 
@@ -50,7 +50,7 @@ mobile because there was nothing here before it.
 | **S10**    | Unknown is not cached                             | This app's cache signal is read **three ways**: cached, not-cached, and **checking-or-unknown to null**. Unknown is not false. The selector's fail-safe owns the "never auto-play something that might be a placeholder" judgement and must not make it twice. |
 | **S1, S2** | Catalogue-derived quality options, absolute bands | Pure modules landed.                                                                                                                                                                                                                                           |
 | **P1**     | The mode system and its router                    | Landed with its precedence table.                                                                                                                                                                                                                              |
-| **P6**     | Startup watchdog                                  | **Ported but not wired into the player.** A dead source still dead-ends.                                                                                                                                                                                       |
+| **P6**     | Startup watchdog                                  | Wired for automatic picks. Position/buffer progress keeps a healthy slow start alive; terminal verdicts advance the capped chain. Classic manual starts keep the vanilla player's existing policy.                                                             |
 
 **Three structured metadata rungs are ported but nothing populates them.** The mobile facts
 extractor reads three tagged blocks that do not exist on the web stream object, which is a plain
@@ -70,9 +70,9 @@ In this order. Nothing later starts before the thing above it is on a television
 
 | Step  | What                                                                                                                                                                                                                          | State                   |
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| **0** | **Dispatch the debug workflow.** It exists and has never been run. **Nothing from this port has ever been watched running**, in a browser or on a TV. Everything else waits on this.                                          | built, never dispatched |
-| **1** | **Verify the stable updater is repointed** at our fork and not still at upstream. One-line check in `js/core/update/appUpdateService.js`.                                                                                     | unverified              |
-| **2** | **P5** progress overlay and the capped failure chain, wired into the player. **P8** first-launch mode selector - standalone here, because this app has no wizard.                                                             | Phase B remainder       |
+| **0** | Dispatch the debug workflow and prove both package globs.                                                                                                                                                                     | complete (`.5`)         |
+| **1** | Verify the stable updater is repointed at our fork and not still at upstream.                                                                                                                                                 | complete + tested       |
+| **2** | **P5** progress overlay and capped failure chain; **P8** standalone first-launch selector integrated into the existing onboarding route.                                                                                      | implemented; TV pending |
 | **3** | **P2** Streamlined, watched and finished.                                                                                                                                                                                     | reachable, unwatched    |
 | **4** | **N1, N2, N3** the measured connection figure.                                                                                                                                                                                | Phase C                 |
 | **5** | **P3** Instant. Withheld by the selectability rule until then, and by nothing else.                                                                                                                                           | Phase D                 |

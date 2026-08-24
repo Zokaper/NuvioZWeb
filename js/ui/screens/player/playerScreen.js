@@ -108,6 +108,20 @@ import {
 } from "../../../core/player/bitmapSubtitleDecoder.js";
 import { isAssSubtitle, convertAssBodyToVtt } from "../../../core/player/assSubtitle.js";
 import { createAssRenderer } from "../../../core/player/assRenderer.js";
+import {
+  ABANDON_REASON,
+  POLL_INTERVAL_MS,
+  VERDICT,
+  createStartupSample,
+  initialWatchdogState,
+  observeStartup
+} from "../../../core/playback/playbackStartupWatchdog.js";
+import {
+  MANUAL_ESCAPE_DELAY_MS,
+  PLAYBACK_MAX_ATTEMPTS,
+  shouldOfferManualEscape
+} from "../../../core/playback/streamRouteSurface.js";
+import { PROGRESS_STALL_GRACE_MS } from "../../../core/playback/playbackSourceSelector.js";
 
 const CLOCK_FORMATTER_CACHE = new Map();
 const LANGUAGE_DISPLAY_NAME_CACHE = new Map();
@@ -2341,6 +2355,24 @@ export const PlayerScreen = {
     if (this.currentStreamIndex < 0) {
       this.currentStreamIndex = 0;
     }
+    this.automaticPlaybackChain = (
+      Array.isArray(params.automaticPlaybackChain) ? params.automaticPlaybackChain : []
+    )
+      .slice(0, PLAYBACK_MAX_ATTEMPTS)
+      .map((entry) => ({
+        streamId: String(entry?.streamId || "").trim(),
+        label: String(entry?.label || "Source").trim() || "Source"
+      }))
+      .filter((entry) => entry.streamId);
+    this.automaticPlaybackAttempt = this.automaticPlaybackChain.length ? 1 : 0;
+    this.automaticPlaybackFailure = null;
+    this.automaticPlaybackManualAvailable = false;
+    this.automaticPlaybackStartedAt = Date.now();
+    this.automaticPlaybackBaselineMs = Math.max(0, Number(params.resumePositionMs || 0));
+    this.automaticPlaybackWatchdog = initialWatchdogState();
+    this.automaticPlaybackWatchdogTimer = null;
+    this.automaticPlaybackEscapeTimer = null;
+    this.automaticPlaybackGiveUpTimer = null;
     // Remember the stream that actually plays so the stream list can focus it on
     // the next visit. Only persist when the caller provided a real candidate list
     // (this skips trailers and synthetic single-url playback).
@@ -2742,6 +2774,7 @@ export const PlayerScreen = {
       this.loadSubtitles();
       this.syncTrackState();
       this.tickTimer = setInterval(() => this.updateUiTick(), 1000);
+      this.scheduleAutomaticPlaybackEscape();
       this.startSkipIntervalCheckTimer();
       this.endedHandler = () => {
         this.handlePlaybackEnded();
@@ -2767,6 +2800,207 @@ export const PlayerScreen = {
       return false;
     }
     return Boolean(this.container);
+  },
+
+  hasAutomaticPlaybackChain() {
+    return Array.isArray(this.automaticPlaybackChain) && this.automaticPlaybackChain.length > 0;
+  },
+
+  clearAutomaticPlaybackTimers() {
+    if (this.automaticPlaybackWatchdogTimer) {
+      clearInterval(this.automaticPlaybackWatchdogTimer);
+      this.automaticPlaybackWatchdogTimer = null;
+    }
+    if (this.automaticPlaybackEscapeTimer) {
+      clearTimeout(this.automaticPlaybackEscapeTimer);
+      this.automaticPlaybackEscapeTimer = null;
+    }
+    if (this.automaticPlaybackGiveUpTimer) {
+      clearTimeout(this.automaticPlaybackGiveUpTimer);
+      this.automaticPlaybackGiveUpTimer = null;
+    }
+  },
+
+  resetAutomaticPlaybackWatchdog() {
+    this.automaticPlaybackStartedAt = Date.now();
+    this.automaticPlaybackBaselineMs = Math.max(
+      0,
+      Math.round(Number(this.getPlaybackCurrentSeconds?.() || 0) * 1000),
+      Number(this.params?.resumePositionMs || 0)
+    );
+    this.automaticPlaybackWatchdog = initialWatchdogState();
+  },
+
+  startAutomaticPlaybackWatchdog() {
+    if (!this.hasAutomaticPlaybackChain() || this.hasPresentedPlaybackFrame) {
+      return;
+    }
+    if (this.automaticPlaybackWatchdogTimer) {
+      return;
+    }
+    this.resetAutomaticPlaybackWatchdog();
+    this.automaticPlaybackWatchdogTimer = setInterval(() => {
+      if (!this.hasAutomaticPlaybackChain() || this.hasPresentedPlaybackFrame) {
+        if (this.hasPresentedPlaybackFrame) {
+          this.clearAutomaticPlaybackTimers();
+          this.automaticPlaybackFailure = null;
+          this.syncAutomaticPlaybackOverlay();
+        }
+        return;
+      }
+      const sample = createStartupSample({
+        elapsedMs: Math.max(0, Date.now() - Number(this.automaticPlaybackStartedAt || Date.now())),
+        isPlaying: Boolean(PlayerController.isPlaying),
+        positionMs: Math.max(0, Math.round(Number(this.getPlaybackCurrentSeconds() || 0) * 1000)),
+        bufferedPositionMs: Math.max(
+          0,
+          Math.round(Number(this.getPlaybackBufferedSeconds() || 0) * 1000)
+        ),
+        durationMs: Math.max(0, Math.round(Number(this.getPlaybackDurationSeconds() || 0) * 1000)),
+        baselineMs: Number(this.automaticPlaybackBaselineMs || 0)
+      });
+      this.automaticPlaybackWatchdog = observeStartup(
+        this.automaticPlaybackWatchdog || initialWatchdogState(),
+        sample
+      );
+      if (this.automaticPlaybackWatchdog.verdict === VERDICT.STARTED) {
+        this.clearAutomaticPlaybackTimers();
+        this.automaticPlaybackFailure = null;
+        this.syncAutomaticPlaybackOverlay();
+      } else if (this.automaticPlaybackWatchdog.verdict === VERDICT.ABANDON) {
+        const reason =
+          this.automaticPlaybackWatchdog.reason === ABANDON_REASON.NEVER_STARTED
+            ? "No playback progress was received."
+            : this.automaticPlaybackWatchdog.reason === ABANDON_REASON.STALLED
+              ? "Startup progress stalled."
+              : "Startup was too slow to sustain playback.";
+        this.handleAutomaticStartupFailure(reason);
+      }
+    }, POLL_INTERVAL_MS);
+  },
+
+  scheduleAutomaticPlaybackEscape() {
+    if (!this.hasAutomaticPlaybackChain() || this.automaticPlaybackManualAvailable) {
+      return;
+    }
+    if (shouldOfferManualEscape(this.automaticPlaybackAttempt, 0)) {
+      this.automaticPlaybackManualAvailable = true;
+      this.syncAutomaticPlaybackOverlay({ focusManual: true });
+      return;
+    }
+    if (this.automaticPlaybackEscapeTimer) {
+      clearTimeout(this.automaticPlaybackEscapeTimer);
+    }
+    this.automaticPlaybackEscapeTimer = setTimeout(() => {
+      this.automaticPlaybackEscapeTimer = null;
+      if (!this.hasAutomaticPlaybackChain() || this.hasPresentedPlaybackFrame) {
+        return;
+      }
+      this.automaticPlaybackManualAvailable = true;
+      this.syncAutomaticPlaybackOverlay({ focusManual: true });
+    }, MANUAL_ESCAPE_DELAY_MS);
+  },
+
+  automaticPlaybackEntry() {
+    if (!this.hasAutomaticPlaybackChain()) {
+      return null;
+    }
+    return this.automaticPlaybackChain[Math.max(0, this.automaticPlaybackAttempt - 1)] || null;
+  },
+
+  handleAutomaticStartupFailure(reason = "Source failed to start.") {
+    if (!this.hasAutomaticPlaybackChain() || this.hasPresentedPlaybackFrame) {
+      return false;
+    }
+    const failed = this.automaticPlaybackEntry();
+    const failedId = String(failed?.streamId || this.getCurrentStreamCandidate()?.id || "");
+    if (failedId && this.automaticPlaybackFailureInFlightId === failedId) {
+      return true;
+    }
+    this.automaticPlaybackFailureInFlightId = failedId;
+    this.clearPlaybackStallGuard();
+    if (this.automaticPlaybackWatchdogTimer) {
+      clearInterval(this.automaticPlaybackWatchdogTimer);
+      this.automaticPlaybackWatchdogTimer = null;
+    }
+    this.automaticPlaybackFailure = {
+      label: failed?.label || "Source",
+      reason: String(reason || "").trim()
+    };
+    const nextEntry = this.automaticPlaybackChain[this.automaticPlaybackAttempt] || null;
+    if (!nextEntry) {
+      this.automaticPlaybackManualAvailable = true;
+      this.syncAutomaticPlaybackOverlay({ focusManual: true });
+      this.automaticPlaybackGiveUpTimer = setTimeout(() => {
+        this.automaticPlaybackGiveUpTimer = null;
+        this.chooseAutomaticPlaybackManually();
+      }, PROGRESS_STALL_GRACE_MS);
+      return true;
+    }
+
+    this.automaticPlaybackAttempt += 1;
+    this.automaticPlaybackManualAvailable = true;
+    const nextCandidate = this.streamCandidates.find(
+      (candidate) => String(candidate?.id || "") === nextEntry.streamId
+    );
+    this.syncAutomaticPlaybackOverlay({ focusManual: true });
+    this.resetAutomaticPlaybackWatchdog();
+    this.automaticPlaybackFailureInFlightId = "";
+    if (!nextCandidate) {
+      return this.handleAutomaticStartupFailure("The next ranked source is no longer available.");
+    }
+    const nextIndex = this.streamCandidates.indexOf(nextCandidate);
+    if (nextIndex >= 0) {
+      this.currentStreamIndex = nextIndex;
+    }
+    void this.playStreamCandidate(nextCandidate, {
+      preservePendingRestore: true,
+      mountToken: this.playerMountToken
+    }).finally(() => {
+      this.startAutomaticPlaybackWatchdog();
+    });
+    return true;
+  },
+
+  chooseAutomaticPlaybackManually() {
+    if (!this.hasAutomaticPlaybackChain()) {
+      return false;
+    }
+    this.clearAutomaticPlaybackTimers();
+    this.automaticPlaybackChain = [];
+    this.automaticPlaybackFailure = null;
+    this.automaticPlaybackManualAvailable = false;
+    return this.navigateBackToStreamScreen({ manualSelection: true });
+  },
+
+  syncAutomaticPlaybackOverlay({ focusManual = false } = {}) {
+    const surface = this.uiRefs?.automaticPlaybackSurface;
+    if (!surface) {
+      return;
+    }
+    const visible = this.hasAutomaticPlaybackChain() && !this.hasPresentedPlaybackFrame;
+    surface.classList.toggle("hidden", !visible);
+    this.uiRefs?.loadingOverlay?.classList.toggle("automatic-active", visible);
+    if (!visible) {
+      surface.innerHTML = "";
+      return;
+    }
+    const failure = this.automaticPlaybackFailure;
+    const attempt = Math.min(
+      PLAYBACK_MAX_ATTEMPTS,
+      Math.max(1, Number(this.automaticPlaybackAttempt || 1))
+    );
+    surface.innerHTML = `
+      <div class="player-automatic-step">${escapeHtml(t("playback_progress_starting", {}, "Starting playback…"))}</div>
+      ${attempt > 1 ? `<div class="player-automatic-attempt">${escapeHtml(`Attempt ${attempt} of ${PLAYBACK_MAX_ATTEMPTS}`)}</div>` : ""}
+      ${failure ? `<div class="player-automatic-failure">${escapeHtml(failure.reason ? `${failure.label} failed: ${failure.reason}` : `${failure.label} failed.`)}</div>` : ""}
+      ${this.automaticPlaybackManualAvailable ? `<button class="player-automatic-manual focusable" type="button" tabindex="-1" data-player-pointer-action="automaticManual">${escapeHtml(t("playback_quality_manual", {}, "Choose manually"))}</button>` : ""}
+    `;
+    if (focusManual && this.automaticPlaybackManualAvailable) {
+      const button = surface.querySelector(".player-automatic-manual");
+      button?.classList.add("focused");
+      button?.focus?.();
+    }
   },
 
   resolvePlaybackMediaSourceType(streamCandidate = this.getCurrentStreamCandidate()) {
@@ -5347,6 +5581,7 @@ export const PlayerScreen = {
             </div>
             <div class="player-loading-subtitle${loadingMeta.subtitle ? "" : " hidden"}">${escapeHtml(loadingMeta.subtitle || "")}</div>
             <div class="player-loading-status hidden"></div>
+            <div class="player-automatic-playback hidden" aria-live="polite"></div>
           </div>
         </div>
 
@@ -5430,6 +5665,7 @@ export const PlayerScreen = {
     this.cachePlayerUiRefs(root);
     this.syncPlayerOverlayLayoutState();
     this.bindLoadingLogoFallback();
+    this.syncAutomaticPlaybackOverlay();
     if (!this.isExternalFrameMode()) {
       this.renderControlButtons();
       this.renderSubtitleDialog();
@@ -5467,6 +5703,7 @@ export const PlayerScreen = {
           loadingTitle: uiRoot.querySelector(".player-loading-title"),
           loadingSubtitle: uiRoot.querySelector(".player-loading-subtitle"),
           loadingStatus: uiRoot.querySelector("#playerLoadingOverlay .player-loading-status"),
+          automaticPlaybackSurface: uiRoot.querySelector(".player-automatic-playback"),
           bufferingStatus: uiRoot.querySelector("#playerBufferingSpinner .player-loading-status"),
           parentalGuide: uiRoot.querySelector("#playerParentalGuide"),
           skipIntro: uiRoot.querySelector("#playerSkipIntro"),
@@ -6040,7 +6277,11 @@ export const PlayerScreen = {
   ) {
     const playbackUrl = String(url || "").trim();
     if (!playbackUrl) {
-      this.showStartupError(t("player_error_no_stream_url", {}, "No stream URL provided"), {
+      const message = t("player_error_no_stream_url", {}, "No stream URL provided");
+      if (this.handleAutomaticStartupFailure(message)) {
+        return;
+      }
+      this.showStartupError(message, {
         streamCandidate: sourceCandidate,
         reason: "missing-url"
       });
@@ -6068,7 +6309,11 @@ export const PlayerScreen = {
         this.getCurrentStreamCandidate();
       this.markPlaybackSourceFailed(playbackUrl);
       if (!this.hasPresentedPlaybackFrame) {
-        this.showStartupError(this.getStartupErrorMessage(mediaErrorCode, detail, candidate), {
+        const startupMessage = this.getStartupErrorMessage(mediaErrorCode, detail, candidate);
+        if (this.handleAutomaticStartupFailure(startupMessage)) {
+          return;
+        }
+        this.showStartupError(startupMessage, {
           mediaErrorCode,
           detail,
           error,
@@ -7224,7 +7469,7 @@ export const PlayerScreen = {
     };
   },
 
-  navigateBackToStreamScreen({ forceDetail = false } = {}) {
+  navigateBackToStreamScreen({ forceDetail = false, manualSelection = false } = {}) {
     if (this.playerBackNavigationInProgress) {
       return true;
     }
@@ -7261,7 +7506,7 @@ export const PlayerScreen = {
       targetRoute === "library"
         ? {}
         : targetRoute === "stream"
-          ? streamParams
+          ? { ...streamParams, ...(manualSelection ? { manualSelection: true } : {}) }
           : targetRoute === "detail"
             ? this.buildDetailRouteParamsFromPlayer()
             : {};
@@ -9286,6 +9531,9 @@ export const PlayerScreen = {
         );
         this.clearPlaybackStallGuard();
         this.releaseStartupAudioGate({ resume: false });
+        if (this.handleAutomaticStartupFailure(startupErrorMessage)) {
+          return;
+        }
         this.showStartupError(startupErrorMessage, {
           mediaErrorCode,
           detail: playbackErrorDetail,
@@ -10003,6 +10251,9 @@ export const PlayerScreen = {
       return false;
     }
     this.hasPresentedPlaybackFrame = true;
+    this.clearAutomaticPlaybackTimers();
+    this.automaticPlaybackFailure = null;
+    this.syncAutomaticPlaybackOverlay();
     this.warmBitmapSubtitleSharedResources();
     if (!this.startupTrackPreferenceReady) {
       // Some P2P / engineFs startups expose tracks before the first real frame
@@ -11299,6 +11550,9 @@ export const PlayerScreen = {
           resolveFailureDetail = result.detail || result.error || "";
           if (result.status === "service_degraded") {
             if (!this.hasPresentedPlaybackFrame) {
+              if (this.handleAutomaticStartupFailure(fallbackError)) {
+                return;
+              }
               this.showStartupError(fallbackError, {
                 streamCandidate,
                 reason: "debrid-resolve",
@@ -11389,6 +11643,9 @@ export const PlayerScreen = {
                   )
                 : t("player_error_playback_fallback", {}, "Playback error"));
         if (!this.hasPresentedPlaybackFrame) {
+          if (this.handleAutomaticStartupFailure(startupMessage)) {
+            return;
+          }
           this.showStartupError(startupMessage, {
             streamCandidate,
             reason: tizenP2pUnsupported
@@ -11853,6 +12110,10 @@ export const PlayerScreen = {
       return;
     }
     const startup = !this.hasPresentedPlaybackFrame;
+    if (startup && this.hasAutomaticPlaybackChain()) {
+      this.startAutomaticPlaybackWatchdog();
+      return;
+    }
     const timeoutMs =
       Number.isFinite(Number(timeoutOverrideMs)) && Number(timeoutOverrideMs) > 0
         ? Number(timeoutOverrideMs)
@@ -12048,6 +12309,9 @@ export const PlayerScreen = {
           "",
           sourceCandidate
         );
+        if (this.handleAutomaticStartupFailure(startupErrorMessage)) {
+          return;
+        }
         this.showStartupError(startupErrorMessage, {
           mediaErrorCode,
           streamCandidate: sourceCandidate,
@@ -19880,6 +20144,10 @@ export const PlayerScreen = {
     }
     this.syncPointerFocus(target);
 
+    if (target.closest?.("[data-player-pointer-action='automaticManual']")) {
+      return this.chooseAutomaticPlaybackManually();
+    }
+
     const errorAction = target.closest?.("[data-player-error-action]");
     if (errorAction && this.isStartupErrorVisible()) {
       if (String(errorAction.dataset.playerErrorAction || "") === "back") {
@@ -20133,6 +20401,28 @@ export const PlayerScreen = {
   async onKeyDown(event) {
     const keyCode = Number(event?.keyCode || 0);
     const isBackKey = isBackEvent(event);
+    if (
+      this.hasAutomaticPlaybackChain() &&
+      !this.hasPresentedPlaybackFrame &&
+      this.automaticPlaybackManualAvailable &&
+      (keyCode === 37 ||
+        keyCode === 38 ||
+        keyCode === 39 ||
+        keyCode === 40 ||
+        isSelectKeyCode(keyCode))
+    ) {
+      event?.preventDefault?.();
+      event?.stopPropagation?.();
+      const button = this.uiRefs?.automaticPlaybackSurface?.querySelector(
+        ".player-automatic-manual"
+      );
+      button?.classList.add("focused");
+      button?.focus?.();
+      if (isSelectKeyCode(keyCode)) {
+        this.chooseAutomaticPlaybackManually();
+      }
+      return;
+    }
     if (this.isStartupErrorVisible()) {
       event?.preventDefault?.();
       event?.stopPropagation?.();
@@ -20702,6 +20992,7 @@ export const PlayerScreen = {
       this.nextEpisodeAutoplayAttemptedKey = "";
       this.resetStillWatchingPromptState({ render: false });
       this.consecutiveAutoPlayCount = 0;
+      this.clearAutomaticPlaybackTimers();
       this.unbindVideoEvents();
       if (this.endedHandler && PlayerController.video) {
         PlayerController.video.removeEventListener("ended", this.endedHandler);

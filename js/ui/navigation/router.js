@@ -14,6 +14,7 @@ import { ConsoleDebugScreen } from "../screens/debug/consoleDebugScreen.js";
 import { TraktScreen } from "../screens/trakt/traktScreen.js";
 import { SupportersContributorsScreen } from "../screens/supporters/supportersContributorsScreen.js";
 import { ExperienceModeSelectionScreen } from "../screens/onboarding/experienceModeSelectionScreen.js";
+import { PlaybackModeSelectionScreen } from "../screens/onboarding/playbackModeSelectionScreen.js";
 import { EssentialAddonSetupScreen } from "../screens/onboarding/essentialAddonSetupScreen.js";
 import { LicensesAttributionsScreen } from "../screens/settings/licensesAttributionsScreen.js";
 import { PluginScreen } from "../screens/plugin/pluginScreen.js";
@@ -52,6 +53,7 @@ const NON_BACKSTACK_ROUTES = new Set([
   "authSignIn",
   "syncCode",
   "experienceModeSelection",
+  "playbackModeSelection",
   "essentialAddonSetup"
 ]);
 const WEBOS_RESUME_ROUTE_KEY = "webos_last_resume_route";
@@ -91,6 +93,7 @@ export const Router = {
     syncCode: SyncCodeScreen,
     profileSelection: ProfileSelectionScreen,
     experienceModeSelection: ExperienceModeSelectionScreen,
+    playbackModeSelection: PlaybackModeSelectionScreen,
     essentialAddonSetup: EssentialAddonSetupScreen,
     detail: MetaDetailsScreen,
     library: LibraryScreen,

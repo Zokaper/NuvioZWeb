@@ -52,9 +52,11 @@ import {
 } from "../../../core/playback/playbackSelectionContext.js";
 import {
   SELECTION_RESULT,
+  describe,
   isSelectionReady,
   selectSource
 } from "../../../core/playback/playbackSourceSelector.js";
+import { playbackChain } from "../../../core/playback/streamRouteSurface.js";
 import { QualitySheet } from "../playback/qualitySheet.js";
 import {
   matchStreamBadges,
@@ -1871,7 +1873,19 @@ export const StreamScreen = {
         const result = selectSource(option.candidates, context);
         if (result.type === SELECTION_RESULT.PLAY) {
           this.closeQualitySheet();
-          void this.playStream(result.stream.id);
+          const automaticPlaybackChain = playbackChain(
+            result.candidate,
+            result.fallbackCandidates
+          ).map((candidate) => ({
+            streamId: candidate.stream.id,
+            label:
+              describe(candidate.facts) ||
+              candidate.stream.title ||
+              candidate.stream.name ||
+              candidate.stream.addonName ||
+              "Source"
+          }));
+          void this.playStream(result.stream.id, { automaticPlaybackChain });
           return;
         }
         // ASK_UNCACHED and NEEDS_MANUAL both mean "nothing here is safe to start unattended".
@@ -3490,7 +3504,7 @@ export const StreamScreen = {
       });
   },
 
-  async playStream(streamId) {
+  async playStream(streamId, { automaticPlaybackChain = null } = {}) {
     this.cancelAutoPlayCountdown();
     this.cancelAutoPlaySelectionWait();
     const filtered = this.getFilteredStreams();
@@ -3564,6 +3578,7 @@ export const StreamScreen = {
       episodes: Array.isArray(this.params?.episodes) ? this.params.episodes : [],
       streamCandidates: playerStreamCandidates,
       preferredStreamId: selected.id,
+      automaticPlaybackChain: Array.isArray(automaticPlaybackChain) ? automaticPlaybackChain : null,
       playbackSourceContext: selected.streamOrigin || {
         addonId: selected.addonId || "",
         addonBaseUrl: selected.addonBaseUrl || "",

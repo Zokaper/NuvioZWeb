@@ -1,16 +1,16 @@
 # NuvioZWeb Status
 
-Last updated: 2026-08-22
+Last updated: 2026-08-24
 
-|                      |                                                                                                                                                                                                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/playback-modes-web`                                                                                                                                                                                                                                                     |
-| Version in the files | `0.3.37` (`package.json`, synced into `appinfo.json` by `scripts/appMetadata.mjs`)                                                                                                                                                                                              |
-| Debug counter        | `DEBUG_BUILD=2` in `debug-version.properties` - **never dispatched**, so no `debug-v*` prerelease exists yet                                                                                                                                                                    |
-| Forked from          | `NuvioMedia/NuvioWeb` at `0c3bafc` (`chore: finalize TV store scope and remove tests`, 2026-08-22)                                                                                                                                                                              |
-| Current work         | the **playback-modes port** from `nuvio-z` - see `PLAYBACK_MODES_WEB_PLAN.md`                                                                                                                                                                                                   |
-| Verified             | `npm test` **177 tests, zero failures**; `npm run build` green; `npm run format:check` clean; both package globs build locally                                                                                                                                                  |
-| **Not** verified     | **nothing from the port has been watched running**, in a browser or on a television. Streamlined is wired and reachable, so the next thing to do is look at it. The debug workflow has never been dispatched, so its YAML is unproven beyond a local build of the same commands |
+|                      |                                                                                                                                                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/upstream-doctrine-stage0`                                                                                                                                                                                                                                     |
+| Version in the files | `0.3.40-z1` (`package.json`; platform manifests receive the normalized vanilla-compatible version)                                                                                                                                                                    |
+| Debug counter        | `DEBUG_BUILD=6` in `debug-version.properties`; dispatch target `debug-v0.3.40-z1.6`                                                                                                                                                                                   |
+| Forked from          | `NuvioMedia/NuvioWeb` at `0c3bafc` (`chore: finalize TV store scope and remove tests`, 2026-08-22)                                                                                                                                                                    |
+| Current work         | the **playback-modes port** from `nuvio-z` - see `PLAYBACK_MODES_WEB_PLAN.md`                                                                                                                                                                                         |
+| Verified             | `npm test` **192 tests, zero failures**; changed runtime files pass ESLint; `npm run build` and `npm run format:check` green; local browser app-shell smoke has no application errors                                                                                 |
+| **Not** verified     | The first-launch selector and automatic failure chain have not been exercised end to end on a TV. The browser smoke used an already-onboarded profile, and no deterministic dead-source fixture exists in the app. Device acceptance remains required before Phase C. |
 
 ## The debug line ran for the first time (2026-08-23)
 
@@ -67,28 +67,33 @@ the dry-run merge silently moved it to `0.3.40`. Re-check it by eye after every 
 
 `PLAYBACK_MODES_WEB_PLAN.md` carries the phase ledger and is the file to read first. In short:
 
-| Phase                           | State                                               |
-| ------------------------------- | --------------------------------------------------- |
-| 0 - debug line                  | complete, never dispatched                          |
-| A - facts and ranking           | complete                                            |
-| B - mode plumbing + Streamlined | **reachable, unwatched**; failure chain outstanding |
-| C - connection figure           | not started                                         |
-| D - Instant                     | not started (withheld by `isSelectable` until then) |
-| E - Tizen 4 verification        | not started                                         |
+| Phase                           | State                                                 |
+| ------------------------------- | ----------------------------------------------------- |
+| 0 - debug line                  | complete, never dispatched                            |
+| A - facts and ranking           | complete                                              |
+| B - mode plumbing + Streamlined | **implemented and PC-checked; TV acceptance pending** |
+| C - connection figure           | not started                                           |
+| D - Instant                     | not started (withheld by `isSelectable` until then)   |
+| E - Tizen 4 verification        | not started                                           |
 
 **What exists and is tested:** the release-tag and language vocabularies, the source-facts
 extractor, the source ranking, the mode router and its precedence table, the quality options with
 their absolute bands, the source selector with its protocol, cache and language gates, the startup
 watchdog, and the route-surface covering rules.
 
-**What is wired and reachable but unwatched:** the quality sheet, the `StreamScreen.mount` route
-decision, the settings row, the eight stored settings keys with their sync mapping, and 70
-`playback_*` strings. Selecting **Streamlined** in Settings and pressing play now opens the sheet
-instead of the source list. **Nobody has looked at it yet.**
+**What is wired and reachable but unwatched on a TV:** the quality sheet, the `StreamScreen.mount`
+route decision, the settings row, the first-launch selector, the eight stored settings keys with
+their sync mapping, and 70 `playback_*` strings. A Streamlined quality choice now seeds at most
+three ranked candidates. The player startup surface names a failed source, advances the chain,
+uses `playbackStartupWatchdog`'s progress deadlines, and offers a D-pad-reachable manual escape
+after five seconds or immediately after a failure. Spending the chain returns to the source list.
 
-**What does not exist yet:** the progress overlay and the capped failure chain (the watchdog and
-`playbackChain` are ported but not wired into the player, so **a dead source still dead-ends**),
-the first-launch mode selector, and everything in Phases C-E.
+The web player owns that overlay and chain rather than preserving a live `StreamScreen` composition:
+this router cleans a screen when navigating away, while the player already owns resolution,
+multi-engine recovery, progress samples and fatal startup errors. Classic passes no chain and its
+existing path remains unchanged.
+
+**What does not exist yet:** everything in Phases C-E. Instant remains withheld by `isSelectable`.
 
 ## Things discovered here that are not written down anywhere else
 
@@ -159,6 +164,7 @@ enrichment - the modern home layout, artwork upgrades, trailers, more-like-this.
 
 ## Next
 
-Finish Phase B's visible half, then put it on a TV off a `debug-v*` build before starting Phase C.
-The pure suites cannot see a focus order, a scroll position or an overscan margin, and this port
-adds the newest and heaviest screen in the app.
+Install `debug-v0.3.40-z1.6` on one Tizen and one webOS television. Verify the first-launch
+selector, Streamlined quality sheet, a successful automatic start, manual escape, and a forced
+dead-source retry through the capped chain. Do not start Phase C until that device pass: the pure
+suites cannot see remote latency, focus order, overscan, native-player behavior or memory pressure.

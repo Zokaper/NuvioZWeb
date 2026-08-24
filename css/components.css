@@ -11841,6 +11841,11 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   transition: none;
 }
 
+.player-loading-overlay.automatic-active {
+  z-index: 36;
+  pointer-events: auto;
+}
+
 .player-loading-spinner {
   position: fixed;
   top: 0;
@@ -12146,6 +12151,60 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   text-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
   max-width: min(72vw, 980px);
   text-align: center;
+}
+
+.player-automatic-playback {
+  margin-top: clamp(16px, 2vh, 28px);
+  display: flex;
+  max-width: min(78vw, 980px);
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: clamp(17px, 1.1vw, 24px);
+  line-height: 1.35;
+  text-align: center;
+  text-shadow: 0 8px 22px rgba(0, 0, 0, 0.65);
+}
+
+.player-automatic-playback.hidden {
+  display: none;
+}
+
+.player-automatic-step {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.player-automatic-attempt {
+  font-size: 0.9em;
+}
+
+.player-automatic-failure {
+  color: #ff9d9d;
+  font-size: 0.88em;
+}
+
+.player-automatic-manual {
+  min-width: 230px;
+  min-height: 54px;
+  margin-top: 8px;
+  padding: 0 28px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.58);
+  color: #ffffff;
+  font-size: clamp(18px, 1.15vw, 24px);
+  font-weight: 750;
+}
+
+.player-automatic-manual.focused,
+.player-automatic-manual:focus {
+  border-color: var(--player-focus-ring);
+  outline: none;
+  background: var(--player-focus-background);
+  color: var(--player-focus-foreground);
+  box-shadow: 0 0 0 3px var(--player-focus-ring);
 }
 
 .player-loading-spinner-status {
