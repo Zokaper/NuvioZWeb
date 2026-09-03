@@ -44,24 +44,6 @@ test("the overlay owns the screen once a tier is picked", () => {
   );
 });
 
-test("a remembered band answers the sheet instead of drawing it", () => {
-  // Without this the user watched a skeleton grid appear and vanish on every episode - a question
-  // flashed and withdrawn, which is worse than either asking or not.
-  assert.equal(
-    surface({ isQualitySheetRoute: true, hasRememberedBand: true }),
-    STREAM_ROUTE_SURFACE.PROGRESS_OVERLAY
-  );
-});
-
-test("a missed band gives the sheet back", () => {
-  // Cleared the moment `rememberedOption` answers null: this episode has no release in that band,
-  // so the question is live again and the sheet is the honest answer.
-  assert.equal(
-    surface({ isQualitySheetRoute: true, hasRememberedBand: false }),
-    STREAM_ROUTE_SURFACE.QUALITY_SHEET
-  );
-});
-
 test("every bail-out uncovers the list", () => {
   // Rule 1, and the escape-hatch half of the whole design: in Streamlined the list appears when
   // the app could not choose, never otherwise.
@@ -71,7 +53,6 @@ test("every bail-out uncovers the list", () => {
         surface({
           ...bailOut,
           isQualitySheetRoute: true,
-          hasRememberedBand: true,
           isAutoPickRoute: true,
           isAutoPlaybackStarting: true
         }),

@@ -1091,11 +1091,6 @@ const FEATURE_ADAPTERS = {
           settings.streamAutoPlayPreferBingeGroupForNextEpisode
         ),
         stream_auto_play_reuse_binge_group: Boolean(settings.streamAutoPlayReuseBingeGroup),
-        stream_reuse_last_link_enabled: Boolean(settings.streamReuseLastLinkEnabled),
-        stream_reuse_last_link_cache_hours: Math.min(
-          168,
-          Math.max(1, Math.trunc(Number(settings.streamReuseLastLinkCacheHours ?? 24) || 24))
-        ),
         still_watching_enabled: Boolean(settings.stillWatchingEnabled),
         still_watching_episode_threshold: normalizeStillWatchingThresholdForSync(
           settings.stillWatchingEpisodeThreshold
@@ -1183,7 +1178,6 @@ const FEATURE_ADAPTERS = {
         "stream_auto_play_next_episode_enabled",
         "stream_auto_play_prefer_bingegroup_next_episode",
         "stream_auto_play_reuse_binge_group",
-        "stream_reuse_last_link_enabled",
         "still_watching_enabled",
         "loading_overlay_enabled",
         "show_player_loading_status",
@@ -1228,12 +1222,6 @@ const FEATURE_ADAPTERS = {
         projected.stream_auto_play_timeout_seconds = Math.max(
           0,
           Math.trunc(Number(raw.stream_auto_play_timeout_seconds))
-        );
-      }
-      if (numberOrNull(raw.stream_reuse_last_link_cache_hours) != null) {
-        projected.stream_reuse_last_link_cache_hours = Math.min(
-          168,
-          Math.max(1, Math.trunc(Number(raw.stream_reuse_last_link_cache_hours)))
         );
       }
       ["stream_auto_play_selected_addons", "stream_auto_play_selected_plugins"].forEach((key) => {
@@ -1468,15 +1456,6 @@ const FEATURE_ADAPTERS = {
       }
       if (booleanOrNull(raw.stream_auto_play_reuse_binge_group) != null) {
         partial.streamAutoPlayReuseBingeGroup = Boolean(raw.stream_auto_play_reuse_binge_group);
-      }
-      if (booleanOrNull(raw.stream_reuse_last_link_enabled) != null) {
-        partial.streamReuseLastLinkEnabled = Boolean(raw.stream_reuse_last_link_enabled);
-      }
-      if (numberOrNull(raw.stream_reuse_last_link_cache_hours) != null) {
-        partial.streamReuseLastLinkCacheHours = Math.min(
-          168,
-          Math.max(1, Math.trunc(Number(raw.stream_reuse_last_link_cache_hours)))
-        );
       }
       if (Object.keys(subtitleStyle).length) {
         partial.subtitleStyle = subtitleStyle;

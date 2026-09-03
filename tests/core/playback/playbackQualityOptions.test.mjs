@@ -20,7 +20,6 @@ import {
   groupQualityOptions,
   highestAffordable,
   optionConnectionFit,
-  rememberedOption,
   requiredMbpsFor,
   stickyAffordable
 } from "../../../js/core/playback/playbackQualityOptions.js";
@@ -523,49 +522,6 @@ test("no pin behaves exactly like highest affordable", () => {
   ]);
 
   assert.equal(stickyAffordable(options, null, 500.0)?.id, highestAffordable(options, 500.0)?.id);
-});
-
-test("a remembered band is matched exactly", () => {
-  const options = build([
-    candidate("4k", "UHD_2160", 20.0),
-    candidate("1080", "FULL_HD_1080", 4.0)
-  ]);
-
-  assert.equal(rememberedOption(options, "1080_single")?.id, "1080_single");
-});
-
-test("a remembered band this episode lacks asks rather than substituting", () => {
-  // The divergence from `stickyAffordable`, and the reason this function exists. That one is a
-  // tie-break for the in-player next episode, where nobody is there to answer a sheet - so it
-  // falls back. This one decides whether to *skip a question*, and a fallback would be silent
-  // substitution: the sheet never appears, so there is nothing on screen to disagree with.
-  const options = build([candidate("1080", "FULL_HD_1080", 4.0), candidate("720", "HD_720", 2.0)]);
-
-  assert.equal(rememberedOption(options, "2160_single"), null);
-  // Same inputs, the other function: it substitutes, on purpose.
-  assert.ok(stickyAffordable(options, 2160, 500.0) != null);
-});
-
-test("a remembered band distinguishes the variant, not just the resolution", () => {
-  // Someone who chose "1080p Mid" to stay inside a data cap has not chosen "1080p Max".
-  const options = build([
-    candidate("1080-big", "FULL_HD_1080", 12.0),
-    candidate("1080-small", "FULL_HD_1080", 2.0)
-  ]);
-  const low = options.find((entry) => entry.variant === QUALITY_VARIANT.MID);
-  const high = options.find((entry) => entry.variant === QUALITY_VARIANT.MAX);
-  assert.notEqual(low.id, high.id);
-
-  assert.equal(rememberedOption(options, low.id)?.id, low.id);
-  assert.equal(rememberedOption(options, high.id)?.id, high.id);
-});
-
-test("no remembered band means no answer", () => {
-  const options = build([candidate("1080", "FULL_HD_1080", 4.0)]);
-
-  assert.equal(rememberedOption(options, null), null);
-  assert.equal(rememberedOption(options, "  "), null);
-  assert.equal(rememberedOption([], "1080_single"), null);
 });
 
 test("an unmeasured connection gets no fit", () => {

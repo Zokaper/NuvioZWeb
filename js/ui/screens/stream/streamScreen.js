@@ -5,7 +5,6 @@ import { addonRepository } from "../../../data/repository/addonRepository.js";
 import { watchProgressRepository } from "../../../data/repository/watchProgressRepository.js";
 import { isWatchProgressInProgress } from "../../../domain/model/watchProgress.js";
 import { PlayerSettingsStore } from "../../../data/local/playerSettingsStore.js";
-import { StreamPreferencesStore } from "../../../data/local/streamPreferencesStore.js";
 import {
   selectAutoPlayStream,
   isAutoPlayEffectivelyEnabled
@@ -1389,21 +1388,7 @@ export const StreamScreen = {
     const returningFromPlayer = Boolean(navigationContext?.isBackNavigation);
     this.autoResumeAttempted = returningFromPlayer;
     const playerSettings = PlayerSettingsStore.get();
-    const reusableStream = playerSettings.streamReuseLastLinkEnabled
-      ? StreamPreferencesStore.getValid(
-          this.params?.itemId,
-          this.params?.videoId || this.params?.itemId,
-          Number(playerSettings.streamReuseLastLinkCacheHours || 24) * 60 * 60 * 1000
-        )
-      : null;
-    this.autoResumeUiActive = Boolean(
-      !navigationContext?.isBackNavigation &&
-      this.params?.continueWatchingBackHome &&
-      !this.params?.manualSelection &&
-      reusableStream?.streamId &&
-      (String(this.params?.resumeStreamIdentity || "").trim() ||
-        String(this.params?.preferredStreamId || "").trim())
-    );
+    this.autoResumeUiActive = false;
     this.autoPlayAttempted = returningFromPlayer;
     // Which selection mechanism this play uses. Every branch but Streamlined falls through to the
     // source list exactly as before, so Classic is unchanged.
@@ -1414,7 +1399,7 @@ export const StreamScreen = {
     this.closeQualitySheet();
     const decision = returningFromPlayer
       ? null
-      : this.resolvePlaybackRoute({ reusableStream, playerSettings });
+      : this.resolvePlaybackRoute({ playerSettings });
     if (decision?.key === PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET) {
       // Opened before any stream has arrived: the sheet draws its own loading state and starts the
       // bounded wait, so a fetch that never settles still ends somewhere the user can act.
@@ -1776,21 +1761,16 @@ export const StreamScreen = {
   /**
    * Which selection mechanism this play uses. Called once per mount, before any stream arrives.
    *
-   * ⚠ The decision is **stored**, not re-derived. Re-running `decide` later answers
-   * `REUSE_LAST_LINK` where it first answered `SHOW_QUALITY_SHEET`, because by then the play has
-   * written a reuse-last-link entry - the same trap mobile hit when the route outlived its
-   * composition.
+   * The decision is stored so retries keep the original route choice.
    */
-  resolvePlaybackRoute({ reusableStream, playerSettings }) {
+  resolvePlaybackRoute({ playerSettings }) {
     this.playbackDecision = decidePlaybackRoute(
       createRouteInputs({
         mode: playerSettings.playbackMode,
         manualSelection: Boolean(this.params?.manualSelection),
         // Always false on TV: this app does not download. The rung stays in the router so the
         // ordering is the one mobile and desktop run.
-        hasCompletedLocalDownload: false,
-        reuseLastLinkEnabled: Boolean(playerSettings.streamReuseLastLinkEnabled),
-        hasValidCachedLink: Boolean(reusableStream?.streamId)
+        hasCompletedLocalDownload: false
       })
     );
     return this.playbackDecision;
@@ -1922,70 +1902,8 @@ export const StreamScreen = {
   },
 
   maybeAutoResumeStream({ allLoaded = false } = {}) {
-    if (this.autoResumeAttempted) {
-      return;
-    }
-    const settings = PlayerSettingsStore.get();
-    const reusableStream = settings.streamReuseLastLinkEnabled
-      ? StreamPreferencesStore.getValid(
-          this.params?.itemId,
-          this.params?.videoId || this.params?.itemId,
-          Number(settings.streamReuseLastLinkCacheHours || 24) * 60 * 60 * 1000
-        )
-      : null;
-    const progressIdentity = reusableStream
-      ? String(this.params?.resumeStreamIdentity || "").trim()
-      : "";
-    const preferredStreamId = String(reusableStream?.streamId || "").trim();
-    const canReuseStoredStream = Boolean(
-      this.params?.continueWatchingBackHome && !this.params?.manualSelection && reusableStream
-    );
-    const cachedIdentity = canReuseStoredStream
-      ? String(reusableStream?.resumeIdentity || "").trim()
-      : "";
-    const canReusePreferredStream = Boolean(canReuseStoredStream && preferredStreamId);
-    if (!progressIdentity && !cachedIdentity && !canReusePreferredStream) {
-      this.autoResumeUiActive = false;
-      return;
-    }
-    if (!this.streams.length) {
-      if (!this.loading) {
-        this.autoResumeAttempted = true;
-        this.autoResumeUiActive = false;
-        this.requestRender({ delayMs: 0 });
-      }
-      return;
-    }
-    const identityMatch =
-      this.streams.find((stream) => {
-        const stableIdentity = buildStreamResumeIdentity(stream);
-        return Boolean(
-          (cachedIdentity && stableIdentity === cachedIdentity) ||
-          (progressIdentity &&
-            (stableIdentity === progressIdentity || streamMergeKey(stream) === progressIdentity))
-        );
-      }) || null;
-    // Stream preferences are stored per profile and per video. They are the
-    // Web equivalent of Android's local stream-link cache and remain available
-    // even when the selected progress source cannot carry stream metadata.
-    const match =
-      identityMatch ||
-      (canReusePreferredStream
-        ? this.streams.find((stream) => String(stream?.id || "") === preferredStreamId)
-        : null);
-    if (match?.id) {
-      this.autoResumeAttempted = true;
-      void this.playStream(match.id);
-      return;
-    }
-    if (!allLoaded && this.loading) {
-      return;
-    }
-    // The remembered source is no longer available. Fall back to the normal
-    // source panel instead of leaving the direct-resume loading state visible.
     this.autoResumeAttempted = true;
     this.autoResumeUiActive = false;
-    this.requestRender({ delayMs: 0 });
   },
 
   maybeAutoPlayStream({ allLoaded = false } = {}) {
@@ -2011,15 +1929,7 @@ export const StreamScreen = {
     if (autoPlayMode === "MANUAL" || !isAutoPlayEffectivelyEnabled(settings)) {
       return;
     }
-    const savedPreference =
-      settings.streamAutoPlayPreferBingeGroupForNextEpisode &&
-      settings.streamAutoPlayReuseBingeGroup
-        ? StreamPreferencesStore.getEntry(
-            this.params?.itemId,
-            this.params?.videoId || this.params?.itemId
-          )
-        : null;
-    const preferredBingeGroup = String(savedPreference?.bingeGroup || "").trim();
+    const preferredBingeGroup = "";
     const installedAddonNames = new Set(
       (addonRepository.getCachedInstalledAddons() || [])
         .map((addon) => String(addon?.displayName || addon?.name || "").trim())

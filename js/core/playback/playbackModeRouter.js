@@ -10,19 +10,16 @@ import { PLAYBACK_MODE } from "./playbackModeModels.js";
 /**
  * A stable name for each branch, for saving the decision across a screen unmounting.
  *
- * ⚠ **The decision has to be carried, not re-derived.** Mobile learnt this the hard way: the
- * failure chain deliberately keeps the stream route alive underneath the player, and re-running
- * `decide` on the way back answers `REUSE_LAST_LINK` where it first answered `AUTO_PICK`, because
- * by then the play has just written a reuse-last-link entry. The retry chain is gated on that
- * answer. Store the key (in `routeStateStore.js`) and restore it with `decisionFromKey`.
+ * ⚠ **The decision has to be carried, not re-derived.** The failure chain deliberately keeps the
+ * stream route alive underneath the player, and the retry chain is gated on the answer the route
+ * started with, so re-running `decide` on the way back can hand it a different one. Store the key
+ * (in `routeStateStore.js`) and restore it with `decisionFromKey`.
  */
 export const PLAYBACK_ROUTE_DECISION = {
   /** Show the full source list. Classic, and every per-play override. */
   SHOW_SOURCE_LIST: "source_list",
   /** Play a completed local download without touching the network. */
   PLAY_LOCAL_DOWNLOAD: "local_download",
-  /** A cached link for this exact video is still valid; reuse it. */
-  REUSE_LAST_LINK: "reuse_last_link",
   /** Streamlined: ask which quality, then auto-pick within it. */
   SHOW_QUALITY_SHEET: "quality_sheet",
   /** Instant: resolve a tier from the connection and auto-pick. */
@@ -62,8 +59,6 @@ export function createRouteInputs(overrides = {}) {
     /** The hold menu's "Play manually" path, threaded through as `params.manualSelection`. */
     manualSelection: false,
     hasCompletedLocalDownload: false,
-    reuseLastLinkEnabled: false,
-    hasValidCachedLink: false,
     ...overrides
   };
 }
@@ -75,15 +70,7 @@ export function createRouteInputs(overrides = {}) {
  * established is preserved rather than replaced:
  *
  *  - `manualSelection` gates the completed-download shortcut;
- *  - the reuse-last-link effect is itself gated on `!manualSelection` and fires *before* auto-play
- *    evaluation.
- *
- * So the order is `manualSelection` > local download > reuse-last-link > mode.
- *
- * A sticky-pin rule used to sit above reuse-last-link, so that a release the user pinned for a
- * season beat a cached link. It was withdrawn in `0.5.0-beta` - see `createStickySourcePin`.
- * Reuse-last-link therefore answers first for an episode the user has already watched, and
- * Streamlined says so rather than skipping its sheet silently.
+ * So the order is `manualSelection` > local download > mode.
  *
  * `streamAutoPlayMode` (MANUAL / FIRST_STREAM / REGEX_MATCH) is **not** an input here. It stays a
  * Classic-only setting; letting it run alongside the source selector would put two pickers on the
@@ -97,12 +84,6 @@ export function decide(inputs) {
     return decision(
       PLAYBACK_ROUTE_DECISION.PLAY_LOCAL_DOWNLOAD,
       "a completed download exists on this device"
-    );
-  }
-  if (inputs.reuseLastLinkEnabled && inputs.hasValidCachedLink) {
-    return decision(
-      PLAYBACK_ROUTE_DECISION.REUSE_LAST_LINK,
-      "a cached link for this video is still valid"
     );
   }
   if (inputs.mode === PLAYBACK_MODE.STREAMLINED) {

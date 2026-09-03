@@ -677,31 +677,6 @@ export function stickyAffordable(options, pinnedHeight, estimatedMbps, maxHeight
 }
 
 /**
- * The option the user already chose for this show, or **null**.
- *
- * For the stream route, which uses it to skip the quality sheet entirely for the rest of a sitting.
- * That is a different job from `stickyAffordable`'s and needs the opposite failure mode, which is
- * the whole reason this exists rather than reusing it:
- *
- *  - `stickyAffordable` is a **tie-break** for the in-player next episode. When the band is
- *    unavailable it falls back to `highestAffordable`, because nobody is there to answer a sheet
- *    mid-binge and any reasonable source beats stopping the binge.
- *  - This is a **decision to skip a question**. A fallback here would be silent substitution: the
- *    sheet does not appear, so there is nothing on screen for the user to disagree with, and an
- *    episode with no release in their band would play something they never picked while the app
- *    acted as though they had. Null means *ask*.
- *
- * Matched on the option id, so the variant counts too - someone who chose "1080p Low" to stay
- * inside a data cap has not chosen "1080p High".
- */
-export function rememberedOption(options, bandId) {
-  if (bandId == null || String(bandId).trim() === "") {
-    return null;
-  }
-  return options.find((option) => option.id === bandId) ?? null;
-}
-
-/**
  * Where one option sits against the connection estimate.
  *
  * Null whenever either figure is unknown - Best available carries no `requiredMbps`, and a

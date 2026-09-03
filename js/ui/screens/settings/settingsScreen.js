@@ -426,27 +426,9 @@ const STREAM_AUTOPLAY_TIMEOUT_OPTIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 2
   }))
   .concat([{ id: 2147483647, labelKey: "autoplay_timeout_unlimited", label: "Unlimited" }]);
 
-const STREAM_REUSE_CACHE_HOURS_OPTIONS = [1, 2, 3, 6, 12, 24, 48, 72, 168].map((hours) => ({
-  id: hours,
-  label: ""
-}));
-
 function labelForOptionId(options, id, fallback) {
   const match = options.find((option) => String(option.id) === String(id));
   return match ? translateOptionLabel(match, fallback) : fallback;
-}
-
-function formatReuseCacheDuration(hoursValue) {
-  const hours = Math.min(168, Math.max(1, Math.trunc(Number(hoursValue) || 24)));
-  if (hours < 24) {
-    return `${hours}h`;
-  }
-  const days = Math.floor(hours / 24);
-  const remainingHours = hours % 24;
-  if (!remainingHours) {
-    return `${days}d`;
-  }
-  return `${days}d ${remainingHours}h`;
 }
 
 // Subtitle appearance options, kept in sync with the in-player subtitle style
@@ -5679,25 +5661,6 @@ export const SettingsScreen = {
         streamAutoPlayReuseBingeGroup: !PlayerSettingsStore.get().streamAutoPlayReuseBingeGroup
       });
     });
-    this.actionMap.set("playback:reuseLastLink", () => {
-      PlayerSettingsStore.set({
-        streamReuseLastLinkEnabled: !PlayerSettingsStore.get().streamReuseLastLinkEnabled
-      });
-    });
-    this.actionMap.set("playback:reuseLastLinkCache", () => {
-      this.openOptionDialog({
-        title: t("autoplay_last_link_cache", {}, "Last Link Cache Duration"),
-        options: STREAM_REUSE_CACHE_HOURS_OPTIONS.map((option) => ({
-          ...option,
-          label: formatReuseCacheDuration(option.id)
-        })),
-        selectedId: PlayerSettingsStore.get().streamReuseLastLinkCacheHours,
-        returnFocusKey: "playback:reuseLastLinkCache",
-        onSelect: (option) => {
-          PlayerSettingsStore.set({ streamReuseLastLinkCacheHours: Number(option.id) });
-        }
-      });
-    });
     this.actionMap.set("playback:trailer", () => {
       PlayerSettingsStore.set({ trailerAutoplay: !PlayerSettingsStore.get().trailerAutoplay });
     });
@@ -6381,30 +6344,6 @@ export const SettingsScreen = {
             : ""
         }
         `
-            : ""
-        }
-        ${this.renderToggleRow({
-          focusKey: "playback:reuseLastLink",
-          title: t("autoplay_reuse_last_link", {}, "Reuse Last Link"),
-          subtitle: t(
-            "autoplay_reuse_last_link_sub",
-            {},
-            "Auto-play your last working stream for this same movie or episode while the cache is valid."
-          ),
-          checked: Boolean(model.player.streamReuseLastLinkEnabled)
-        })}
-        ${
-          model.player.streamReuseLastLinkEnabled
-            ? this.renderActionRow({
-                focusKey: "playback:reuseLastLinkCache",
-                title: t("autoplay_last_link_cache", {}, "Last Link Cache Duration"),
-                subtitle: t(
-                  "autoplay_reuse_last_link_sub",
-                  {},
-                  "Auto-play your last working stream while the cache is valid."
-                ),
-                value: formatReuseCacheDuration(model.player.streamReuseLastLinkCacheHours)
-              })
             : ""
         }
         ${this.renderActionRow({

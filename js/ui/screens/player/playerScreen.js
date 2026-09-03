@@ -73,7 +73,6 @@ import {
   subscribeWebOsCompanionService
 } from "../../../platform/webos/webosCompanionService.js";
 import { WebOsLunaService } from "../../../platform/webos/webosLunaService.js";
-import { StreamPreferencesStore } from "../../../data/local/streamPreferencesStore.js";
 import { buildStreamResumeIdentity } from "../../../core/streams/streamResumeIdentity.js";
 import { TrackPreferencesStore } from "../../../data/local/trackPreferencesStore.js";
 import {
@@ -2378,7 +2377,6 @@ export const PlayerScreen = {
     // (this skips trailers and synthetic single-url playback).
     if (Array.isArray(params.streamCandidates) && params.streamCandidates.length) {
       const playingStreamCandidate = this.streamCandidates[this.currentStreamIndex] || null;
-      this.rememberSelectedStreamPreference(playingStreamCandidate);
     }
     this.activePlaybackSourceContext =
       this.getPlaybackSourceContext(
@@ -3065,21 +3063,6 @@ export const PlayerScreen = {
         ? buildStreamResumeIdentity(streamCandidate) || streamMergeKey(streamCandidate) || null
         : null
     };
-  },
-
-  rememberSelectedStreamPreference(streamCandidate) {
-    const prefContentId = String(this.params?.itemId || "").trim();
-    const prefVideoId = String(this.params?.videoId || this.params?.itemId || "").trim();
-    if (!streamCandidate?.id || !prefContentId) {
-      return;
-    }
-    StreamPreferencesStore.set(prefContentId, prefVideoId, streamCandidate.id, {
-      bingeGroup:
-        streamCandidate?.behaviorHints?.bingeGroup ||
-        streamCandidate?.raw?.behaviorHints?.bingeGroup ||
-        "",
-      resumeIdentity: buildStreamResumeIdentity(streamCandidate)
-    });
   },
 
   buildSubtitleLookupContext() {
@@ -11700,7 +11683,6 @@ export const PlayerScreen = {
         entry.id === streamCandidate.id ? { ...entry, ...streamCandidate } : entry
       );
     }
-    this.rememberSelectedStreamPreference(streamCandidate);
     await this.playStreamByUrl(targetUrl, {
       ...options,
       mountToken,

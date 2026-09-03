@@ -91,15 +91,6 @@ export function createSurfaceInputs(overrides = {}) {
     isQualitySheetRoute: false,
     qualitySheetDismissed: false,
     /**
-     * A band chosen earlier in this sitting is going to answer the sheet's question.
-     *
-     * Set while the route is still waiting for the fetch to settle, so the sheet is never drawn on
-     * a play that is not going to ask anything. Without it the user watched a skeleton grid appear
-     * and vanish on every episode - a question flashed and withdrawn, which is worse than either
-     * asking or not.
-     */
-    hasRememberedBand: false,
-    /**
      * The route decision is AUTO_PICK - Instant, which has no sheet to draw.
      *
      * A **route identity**, derived from the decision exactly as `isQualitySheetRoute` is. Nothing
@@ -149,9 +140,6 @@ export function streamRouteSurface(inputs) {
   }
   if (inputs.hasNavigatedAway) {
     return STREAM_ROUTE_SURFACE.HAND_OFF;
-  }
-  if (inputs.isQualitySheetRoute && inputs.hasRememberedBand && !inputs.qualitySheetDismissed) {
-    return STREAM_ROUTE_SURFACE.PROGRESS_OVERLAY;
   }
   if (inputs.isAutoPickRoute && !inputs.qualitySheetDismissed) {
     return STREAM_ROUTE_SURFACE.PROGRESS_OVERLAY;

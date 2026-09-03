@@ -70,8 +70,6 @@ const DEFAULTS = {
   streamAutoPlayRegex: "",
   streamAutoPlayPreferBingeGroupForNextEpisode: true,
   streamAutoPlayReuseBingeGroup: true,
-  streamReuseLastLinkEnabled: false,
-  streamReuseLastLinkCacheHours: 24,
   streamAutoPlayTimeoutSeconds: 3,
   // Playback modes. Ported from nuvio-z; the sync keys are the ones mobile already writes, so a
   // profile's mode carries between a phone and a television. See PLAYBACK_MODES_WEB_PLAN.md.
@@ -177,14 +175,6 @@ function normalizeStringList(value) {
       (Array.isArray(value) ? value : []).map((entry) => String(entry || "").trim()).filter(Boolean)
     )
   ];
-}
-
-function normalizeReuseLastLinkCacheHours(value) {
-  const hours = Math.trunc(Number(value));
-  if (!Number.isFinite(hours)) {
-    return DEFAULTS.streamReuseLastLinkCacheHours;
-  }
-  return Math.min(168, Math.max(1, hours));
 }
 
 function normalizeNextEpisodeThresholdMode(value) {
@@ -354,12 +344,6 @@ export function normalizePlayerSettings(settings = {}) {
     ),
     streamAutoPlayReuseBingeGroup: Boolean(
       persistentSettings.streamAutoPlayReuseBingeGroup ?? DEFAULTS.streamAutoPlayReuseBingeGroup
-    ),
-    streamReuseLastLinkEnabled: Boolean(
-      persistentSettings.streamReuseLastLinkEnabled ?? DEFAULTS.streamReuseLastLinkEnabled
-    ),
-    streamReuseLastLinkCacheHours: normalizeReuseLastLinkCacheHours(
-      persistentSettings.streamReuseLastLinkCacheHours
     ),
     streamAutoPlayTimeoutSeconds: normalizeStreamAutoPlayTimeout(
       persistentSettings.streamAutoPlayTimeoutSeconds

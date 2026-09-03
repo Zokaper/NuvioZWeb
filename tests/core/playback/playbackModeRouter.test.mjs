@@ -55,9 +55,7 @@ test("manual selection wins in every mode", () => {
       inputs({
         mode,
         manualSelection: true,
-        hasCompletedLocalDownload: true,
-        reuseLastLinkEnabled: true,
-        hasValidCachedLink: true
+        hasCompletedLocalDownload: true
       })
     );
     assert.equal(
@@ -75,9 +73,7 @@ test("a local download beats everything below it", () => {
     const result = decide(
       inputs({
         mode,
-        hasCompletedLocalDownload: true,
-        reuseLastLinkEnabled: true,
-        hasValidCachedLink: true
+        hasCompletedLocalDownload: true
       })
     );
     assert.equal(
@@ -86,37 +82,6 @@ test("a local download beats everything below it", () => {
       `a completed download must win in ${mode}, got ${result.key}`
     );
   });
-});
-
-test("reuse-last-link beats the mode everywhere", () => {
-  // A sticky-pin rule used to sit between them so that a release the user pinned for a season beat
-  // a cached link. It was withdrawn in 0.5.0-beta - it could only be created from the escape
-  // hatch, and once created it silently stopped the quality sheet appearing with nothing in the UI
-  // to say why. Pinned here so that re-adding the pin is a deliberate change to this table rather
-  // than something that quietly reorders it.
-  PLAYBACK_MODES.forEach((mode) => {
-    const result = decide(inputs({ mode, reuseLastLinkEnabled: true, hasValidCachedLink: true }));
-    assert.equal(
-      result.key,
-      PLAYBACK_ROUTE_DECISION.REUSE_LAST_LINK,
-      `reuse-last-link must win in ${mode}, got ${result.key}`
-    );
-  });
-});
-
-test("reuse-last-link needs both the setting and a valid link", () => {
-  assert.equal(
-    decide(inputs({ mode: PLAYBACK_MODE.INSTANT, reuseLastLinkEnabled: true })).key,
-    PLAYBACK_ROUTE_DECISION.AUTO_PICK
-  );
-  assert.equal(
-    decide(inputs({ mode: PLAYBACK_MODE.INSTANT, hasValidCachedLink: true })).key,
-    PLAYBACK_ROUTE_DECISION.AUTO_PICK
-  );
-  assert.equal(
-    decide(inputs({ mode: PLAYBACK_MODE.STREAMLINED, reuseLastLinkEnabled: true })).key,
-    PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET
-  );
 });
 
 test("every decision survives a key round trip", () => {
