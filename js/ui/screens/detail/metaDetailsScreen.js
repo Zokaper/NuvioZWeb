@@ -3986,7 +3986,7 @@ export const MetaDetailsScreen = {
       .filter(Boolean)
       .join("");
     return `
-      <article class="series-episode-card focusable${isWatched ? " watched" : ""}"
+      <article class="series-episode-card focusable${isWatched ? " watched" : ""}${shouldBlur ? " spoiler-hidden" : ""}"
             data-action="openEpisodeStreams"
             data-video-id="${escapeHtml(episode.id)}"
             data-episode-index="${absoluteIndex}">
@@ -4243,11 +4243,11 @@ export const MetaDetailsScreen = {
     const progressRatio = duration > 0 ? Math.min(1, Math.max(0, position / duration)) : 0;
     const isWatched = this.isEpisodeMarkedWatched(episode);
 
+    const shouldBlur = Boolean(LayoutPreferences.get().blurUnwatchedEpisodes) && !isWatched;
     card.classList.toggle("watched", isWatched);
-    image.classList.toggle(
-      "is-blurred",
-      Boolean(LayoutPreferences.get().blurUnwatchedEpisodes) && !isWatched
-    );
+    image.classList.toggle("is-blurred", shouldBlur);
+    // The synopsis is withheld with the still, so marking an episode watched must give both back.
+    card.classList.toggle("spoiler-hidden", shouldBlur);
 
     let statusNode = thumb.querySelector(".series-episode-status");
     if (isWatched) {

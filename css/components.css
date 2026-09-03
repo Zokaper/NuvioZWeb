@@ -16906,6 +16906,15 @@ html[data-card-depth="true"][data-card-depth-trailers="true"] .detail-trailer-ca
   transform: scale(1.08);
 }
 
+/*
+ * Blurring the still while printing the synopsis beside it protected nothing - the overview is
+ * the spoiler, and it was the readable half. Driven off the card so the first render and
+ * syncEpisodeCardWatchedDom cannot disagree about it.
+ */
+.series-episode-card.spoiler-hidden .series-episode-overview {
+  display: none;
+}
+
 .series-episode-card.focused {
   border-color: transparent;
   box-shadow: none;
