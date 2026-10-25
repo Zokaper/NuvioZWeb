@@ -11,7 +11,7 @@ Last updated: 2026-10-25
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 (the new trunk): tooling + identity committed; next is the first debug build on the TV                                         |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                              |
 | Verified             | `npm run test:z` 6/6; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, the WGT's `config.xml` carries the Z ids (PC only) |
-| **Not** verified     | Nothing from this line has been on a TV.                                                                                                                                        |
+| **Not** verified     | Anything past launch. The first Nuvio Z build is installed on the Q60B beside vanilla and opens to sign-in, but it has no keys (below), so sign-in, TMDB and sync are untested. |
 
 ## Phase 10 restart (2026-10-25)
 
@@ -52,6 +52,16 @@ upstream's package id; deleting it on the TV fixed it. That is why this line has
 - The debug workflow runs the parity scripts as informational (`continue-on-error`).
 
 ## Getting at the TV from this PC
+
+- **Install a build from this PC:** `node "Nuvio Z/tv-tools/tvinstall.cjs" NuvioZTV01_<version>.wgt --launch`.
+  It signs with the Samsung certificates upstream's installer created for this TV (cached in
+  `%APPDATA%/Nuvio TV Installer/samsung-certificates`), using the same vendored `tizen-js` signer
+  (GPL-3), then `sdb push` + `vd_appinstall`. First run 2026-10-25: `install completed`, launched, and
+  `vd_applist` shows `NuvioZTV01` "Nuvio Z" beside vanilla's `NuvioTV001` - the side-by-side install works.
+- **No keys in any build yet.** There is no `local.properties` here and the fork has **no Actions
+  secrets**, so builds fall back to `local.example.properties`: the QR sign-in renders blank, and TMDB,
+  account sync and Trakt are off. Addons still work via _Continue without account_. Z's sign-in must go
+  to Z's backend (Stage 5), never `api.nuvio.tv`; a TMDB key is the maintainer's to provide.
 
 - `sdb` 4.2.36 (from `download.tizen.org`) is at `Nuvio Z/tv-tools/sdb-4.2.36/x/data/tools/sdb.exe`.
   `sdb connect 192.168.100.120` works **only while upstream's installer is closed** - it holds the
