@@ -8,9 +8,9 @@ Last updated: 2026-10-25
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                       |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                   |
 | Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                                                         |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 done; **Stage 2 step 1 (pure playback logic) done**; next is step 2, playback settings + sync                                                                    |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: step 1 (pure logic) and **step 2 (settings + sync) done**; next is step 3, the screens, built in the browser                                                    |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                |
-| Verified             | `npm run test:z` **312/312**; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, Z ids in `config.xml` (PC only)                                              |
+| Verified             | `npm run test:z` **330/330**; upstream parity unchanged (all but the known vanilla failure); `lint:runtime` and `format:check` clean; the app loads, signs in and syncs in the browser (PC only)                  |
 | **Not** verified     | Anything past sign-in. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
 
 ## Phase 10 restart (2026-10-25)
@@ -52,6 +52,30 @@ was ported from (`59a02f4af`, 2026-08-22) to `nuvio-z` main, and each module's n
 `PlaybackSelectionContextFactory` (needs the player settings, step 2), and the loading-experience modules
 (`PlaybackLoadingState/Session`, `PlaybackSourceProbe`, `PlaybackPosition`, `VideoPresentation`,
 `PlaybackAttemptLog`, `ConnectionProbeSettlement`, `AutoChainFatal`), which port with the loading screen.
+
+### Stage 2, step 2: playback settings and their sync (2026-10-25)
+
+- `js/core/z/playback/playbackSettingsModel.js` (pure): the ten settings, stored raw (`null` = never set),
+  mobile's defaults/coercion on read only, mobile's sync keys. Instant still reads as Streamlined on TV
+  (withheld until its route lands) without the stored choice being rewritten.
+- `js/z/settings/`: a Z-owned profile store (`zPlaybackSettings` in localStorage) and the sync adapter. The
+  keys ride in the `tv` blob's `player_settings` feature, through three seams in
+  `profileSettingsSyncFeature-player-settings.js`. Absent keys change nothing (a vanilla app on the same
+  account cannot wipe them); `playback_mode_selector_seen` stays local.
+- `js/core/z/playback/playbackSelectionContextFactory.js` (pure): the one way settings become a selection
+  context; translates the TV's language sentinels; torrents need platform capability **and** the setting.
+- **Sync is per family.** Mobile, desktop and TV each have their own blob on the official account
+  (`sync_push_profile_settings_blob`, `p_platform`). The TV does not see the phone's mode until the
+  cross-family import is built (with the first-launch selector, step 3). **Push not yet watched end to
+  end:** nothing writes the store until the settings UI exists.
+
+### Working in the browser (from 2026-10-25)
+
+UI work happens on the PC: `npm run serve` (port 4173) plus `Nuvio Z/tv-tools/webdrive.mjs`, which runs a
+visible Edge app window pinned at 1920x1080, signed into the maintainer's account, and presses keys /
+screenshots / reads the console (`node webdrive.mjs start --headful | keys ... | shot f.png | logs`).
+Browser-only differences: IMDb season ratings are CORS-blocked; many MKV/HEVC files will not play in
+Chromium; the update check 404s until the fork publishes a release. The TV is for checkpoints.
 
 ### Vanilla 1.2.9 on the test TV (Stage 0, maintainer-driven)
 
