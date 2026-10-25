@@ -36,6 +36,9 @@ import { parseStreamBadgeRulesFromPayload, normalizeStreamBadgeRules } from "../
 
 import { ProfileManager } from "./profileManager.js";
 
+// Nuvio Z: the playback-mode settings ride in this feature under mobile's key names.
+import { exportZPlaybackSettings, importZPlaybackSettings, projectZPlaybackSettings } from "../../z/settings/playbackSettingsSync.js";
+
 import {
   clearProfileSettingsCloudSyncPending,
   getProfileSettingsCloudSyncPendingVersion,
@@ -136,7 +139,8 @@ export const player_settings = {
         ? settings.streamAutoPlaySelectedPlugins
         : [],
       stream_auto_play_regex: String(settings.streamAutoPlayRegex || ""),
-      stream_auto_play_timeout_seconds: Math.max(0, Math.trunc(Number(settings.streamAutoPlayTimeoutSeconds ?? 3) || 0))
+      stream_auto_play_timeout_seconds: Math.max(0, Math.trunc(Number(settings.streamAutoPlayTimeoutSeconds ?? 3) || 0)),
+      ...exportZPlaybackSettings(profileId)
     };
   },
   project(rawFeature = {}) {
@@ -220,7 +224,7 @@ export const player_settings = {
     if (thresholdMinutes != null) {
       projected.next_episode_threshold_minutes_before_end_v2 = normalizeHalfStepForSync(thresholdMinutes, 0, 3.5, 2);
     }
-    return projected;
+    return { ...projected, ...projectZPlaybackSettings(raw) };
   },
   import(profileId, rawFeature = {}) {
     const raw = normalizeFeaturePayload(rawFeature);
@@ -362,8 +366,9 @@ export const player_settings = {
     if (Object.keys(subtitleStyle).length) {
       partial.subtitleStyle = subtitleStyle;
     }
+    const zChanged = importZPlaybackSettings(profileId, raw);
     if (!Object.keys(partial).length) {
-      return false;
+      return zChanged;
     }
     PlayerSettingsStore.setForProfile(profileId, partial, { silentSync: true });
     return true;
