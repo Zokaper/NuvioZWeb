@@ -3267,4 +3267,8 @@
 
     <string name="stream_resume_from_time">Resume from %1$s</string>
     <string name="stream_resume_from_percent">Resume from %1$d%</string>
+
+    <!-- Nuvio Z strings. Keep every Z string in this block, last in the file, so upstream's churn
+         in this file never lands inside ours. -->
+    <string name="settings.about.basedOn">Based on Nuvio %1$s</string>
 </resources>

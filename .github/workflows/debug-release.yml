@@ -71,11 +71,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run Nuvio Z's pure suites
+        run: npm run test:z
+
       # Upstream's parity scripts, informational only. At vanilla 1.2.9 one of them
       # (test-tmdb-detail-parity) already fails on upstream's own stale config.js stub, and
       # upstream's `npm test` needs a tests/ folder upstream does not commit. A debug build is
-      # still worth putting on a TV, so this reports rather than blocks. Z's own pure suites
-      # gate the build once Stage 2 ports them.
+      # still worth putting on a TV, so this reports rather than blocks. Z's own suites above gate.
       - name: Run upstream's parity scripts (informational)
         continue-on-error: true
         run: npm run test:android-parity

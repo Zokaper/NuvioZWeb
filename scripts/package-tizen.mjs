@@ -19,10 +19,13 @@ const requireConfiguredRuntimeEnv = /^(1|true|yes|on)$/i.test(
   String(process.env.NUVIO_REQUIRE_LOCAL_PROPERTIES || "")
 );
 
-const appName = "Nuvio TV";
-const defaultTizenPackageId = "NuvioTV001";
-const defaultTizenAppId = "NuvioTV001.NuvioTV";
-const defaultWidgetUri = "https://nuvio.tv";
+// Nuvio Z identity. Its own package id, not upstream's NuvioTV001: a TV refuses to replace an app
+// signed by a different author ("118, -11 Author certificate not match"), and a separate id lets
+// Nuvio Z and vanilla Nuvio be installed side by side. The service ids derive from the package id.
+const appName = "Nuvio Z";
+const defaultTizenPackageId = "NuvioZTV01";
+const defaultTizenAppId = "NuvioZTV01.NuvioZ";
+const defaultWidgetUri = "https://github.com/Zokaper/NuvioZWeb";
 const tizenEngineFsServiceRelativePath = "services/tizen/enginefs-service.js";
 const tizenEngineFsRuntimeDirRelativePath = "services/tizen/runtime";
 const tizenPluginServiceRelativePath = "services/tizen/plugin-service.js";

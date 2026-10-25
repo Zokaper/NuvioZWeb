@@ -1,5 +1,6 @@
 import { renderAmbientSection } from "./settingsAmbientSection.js";
 import { renderWatchPartySection } from "./settingsWatchPartySection.js";
+import { renderVanillaBaseLine } from "./zSettingsAbout.js";
 /* eslint-disable no-unused-vars */
 import * as internals from "./settingsScreenContext.js";
 
@@ -147,6 +148,7 @@ export function createSettingsScreenMethods12() {
               <p class="settings-about-copy">${t("settings.about.madeWithLove")}</p>
               <p class="settings-about-copy">${t("settings.about.version", { version: SETTINGS_VERSION_LABEL })}</p>
               <p class="settings-about-copy">${t("settings.about.portedBy")}</p>
+              ${renderVanillaBaseLine({ version: CURRENT_APP_VERSION, t, escapeHtml })}
             </div>
             <div class="settings-stack">
               ${this.renderActionRow({

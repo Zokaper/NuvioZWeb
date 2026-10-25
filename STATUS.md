@@ -2,16 +2,16 @@
 
 Last updated: 2026-10-25
 
-|                      |                                                                                                                           |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                               |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)           |
-| Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 (the new trunk) in progress                                              |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                        |
-| Verified             | vanilla build green; upstream parity scripts 20/21 at vanilla 1.2.9 (see below)                                           |
-| **Not** verified     | Nothing from this line has been on a TV.                                                                                  |
+|                      |                                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                      |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                     |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                 |
+| Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                       |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 (the new trunk): tooling + identity committed; next is the first debug build on the TV                                         |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                              |
+| Verified             | `npm run test:z` 6/6; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, the WGT's `config.xml` carries the Z ids (PC only) |
+| **Not** verified     | Nothing from this line has been on a TV.                                                                                                                                        |
 
 ## Phase 10 restart (2026-10-25)
 
@@ -23,7 +23,9 @@ The maintainer decided on 2026-10-22 to restart the TV port from current upstrea
   tracked against upstream's ignore) and `docs/Z-PORT-MATRIX.md`, whose implementation rows describe the
   archive, not this line.
 - **Z identity**: own Tizen package/app id and name, `-z<n>` versioning, the updater pointed at this
-  fork, About naming the vanilla base. Upstream-owned files touched are listed in
+  fork, About naming the vanilla base. The logic is Z-owned (`js/core/z/zVersion.js`,
+  `js/ui/screens/settings/zSettingsAbout.js`) and covered by `z-tests/` (`npm run test:z`, which the debug
+  workflow gates on); upstream files get import-and-call seams only. Upstream-owned files touched are listed in
   `nuvio-z/Docs/PATCH-SURFACE.md` under _NuvioZWeb_.
 
 ### Vanilla 1.2.9 on the test TV (Stage 0, maintainer-driven)
@@ -56,8 +58,11 @@ upstream's package id; deleting it on the TV fixed it. That is why this line has
   TV's one developer session. `sdb shell 0 vd_applist` lists installed apps.
 - `sdb shell 0 debug <appId>` (remote inspector) hung with no output on the installer-signed vanilla
   app. Untried on a WGT signed as debuggable.
-- The set answers the Samsung network-remote API (`http://192.168.100.120:8001/api/v2/`); keys go
-  over `wss://…:8002` after a one-time Allow on the TV. Not set up yet.
+- **Remote keys from this PC work** (2026-10-25): `node "Nuvio Z/tv-tools/tvremote.mjs" KEY_DOWN KEY_ENTER`
+  (`--wait <ms>` sets the gap). Needed on the TV: Expert Settings → **IP Remote** on, **Power On with
+  Mobile** on, and a one-time Allow; the token is in `tv-tools/tvremote.token`. The script uses the `ws`
+  package because the TV silently ignores a connection without an `Origin` header, which Node's built-in
+  `WebSocket` cannot send.
 - Pictures: a DroidCam phone pointed at the TV, `http://192.168.100.70:4747/video` (MJPEG, one viewer
   at a time). `Nuvio Z/tv-tools/tvshot.py OUT.jpg` saves one frame. AVPlay video is a hardware
   plane, so only the camera sees the picture itself.

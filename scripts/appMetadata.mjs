@@ -15,6 +15,25 @@ async function writeJson(filePath, value) {
   await writeFile(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
+/**
+ * Nuvio Z: the numeric x.y.z a TV package manifest requires.
+ *
+ * A Nuvio Z version carries a Z revision (1.2.9-z1), which is not legal in webOS's appinfo.json
+ * (ares-package reads it directly) or Tizen's widget version. The platforms see the vanilla base;
+ * package.json keeps the full version, which the build injects as __NUVIO_APP_VERSION__ and the
+ * in-app updater compares, so the Z revision is never lost where it orders anything.
+ */
+export function normalizePackageVersion(version) {
+  const parts = String(version || "0.0.0")
+    .replace(/^v/i, "")
+    .split(".")
+    .map((part) => String(Number.parseInt(part, 10) || 0));
+  while (parts.length < 3) {
+    parts.push("0");
+  }
+  return parts.slice(0, 3).join(".");
+}
+
 export async function readAppMetadata() {
   const packageJson = await readJson(packageJsonPath);
   const version = String(packageJson?.version || "0.0.0").trim() || "0.0.0";
@@ -25,7 +44,7 @@ export async function readAppMetadata() {
 }
 
 export async function syncVersionFiles() {
-  const { version } = await readAppMetadata();
+  const version = normalizePackageVersion((await readAppMetadata()).version);
 
   await Promise.all(
     versionManagedJsonPaths.map(async (filePath) => {

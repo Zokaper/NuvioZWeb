@@ -1,4 +1,6 @@
-const LATEST_RELEASE_URL = "https://api.github.com/repos/NuvioMedia/NuvioTVSmart/releases/latest";
+// Nuvio Z: the release line and the -z<n> ordering live in a Z-owned module.
+import { LATEST_RELEASE_URL, compareZRevision } from "../z/zVersion.js";
+
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_RETRY_DELAY_MS = 2000;
 const DEFAULT_MAX_ATTEMPTS = 2;
@@ -45,7 +47,7 @@ export function isRemoteAppVersionNewer(remote, local) {
       return remotePart > localPart;
     }
   }
-  return false;
+  return compareZRevision(remote, local) > 0;
 }
 
 function releaseTag(release) {

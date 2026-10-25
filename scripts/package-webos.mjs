@@ -3,7 +3,7 @@ import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
-import { readAppMetadata, syncVersionFiles } from "./appMetadata.mjs";
+import { normalizePackageVersion, readAppMetadata, syncVersionFiles } from "./appMetadata.mjs";
 import { compatibilityPolicy } from "./compatibilityPolicy.mjs";
 import { runWebOsToolsBinary } from "./aresCli.mjs";
 import { pruneCssFileForPlatform } from "./pruneCssForPlatform.mjs";
@@ -180,7 +180,7 @@ ${webOsScriptTag}  <script>
 }
 
 async function stageApp() {
-  const { version } = await readAppMetadata();
+  const version = normalizePackageVersion((await readAppMetadata()).version);
   await cp(distDir, appStageDir, { recursive: true });
   await pruneCssFileForPlatform(path.join(appStageDir, "css", "bundle.css"), "webos");
 
@@ -327,7 +327,7 @@ async function packageWebOs() {
       rootDir
     ]);
   } catch (error) {
-    const { version } = await readAppMetadata();
+    const version = normalizePackageVersion((await readAppMetadata()).version);
     const expectedIpk = path.join(rootDir, `space.nuvio.webos_${version}_all.ipk`);
     if (await pathExists(expectedIpk)) {
       console.warn(
