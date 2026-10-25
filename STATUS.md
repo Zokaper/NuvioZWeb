@@ -7,7 +7,7 @@ Last updated: 2026-10-25
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                     |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                    |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                |
-| Debug counter        | `DEBUG_BUILD=8` in `debug-version.properties` (continues the 0.3.40 line's counter); step 3.2 debug publication pending                                                                                                                                        |
+| Debug counter        | `DEBUG_BUILD=8` in `debug-version.properties` (continues the 0.3.40 line's counter); [debug-v1.2.9-z1.8](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.8) published                                                                        |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-2, 3.1 and **3.2 (source screen + player)** implemented; next is 3.3, first-launch selector + cross-family import                                                                                    |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                             |
 | Verified             | `npm run test:z` **394/394**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and Tizen package pass; Q60B playback/menu/source-panel checks below                |
@@ -120,7 +120,7 @@ upstream's TV row styling (Stage 4 restyles). The logic is Z-owned (`js/z/settin
   video, and Back to details. An actual dead media URL (no injected error callback) hit the 20 s watchdog
   and fell back to the working video in **20.1 s**. A 4,000-source panel rendered 13 cards in **31-63 ms**
   on this PC, with index 3999 reachable. Browser tests used in-memory repository/settings overrides;
-  browser checks did not change account playback settings; hardware checks temporarily selected Streamlined. Temporary inspection exports are removed from the app.
+  browser checks did not change account playback settings; hardware checks temporarily selected Streamlined, then restored Classic on the TV (Balanced quality limit retained). Temporary inspection exports are removed from the app.
 - **Not measured:** connection throughput or physical display resolution. No guessed figure is shown;
   displayMaxHeight remains null. No metered/download/party path exists on TV. Loading entrance/exit motion,
   Instant, and cross-family first-launch import are not claimed by this step.
@@ -133,6 +133,15 @@ upstream's TV row styling (Stage 4 restyles). The logic is Z-owned (`js/z/settin
 - Final checks: **394/394**, `lint:runtime`, `format:check`, build and Tizen packaging pass. The default
   GitHub debug workflow has no `NUVIO_LOCAL_PROPERTIES` secret; its unconfigured packages lack account
   sign-in/sync and TMDB. The locally installed WGT uses the ignored local configuration.
+
+**Committed / published:** TV code `f78d18e7` on `claude/phase-10-trunk`; canonical docs
+`fbf572cca` pushed as a fast-forward to `nuvio-z` main (also retained on
+`codex/tv-step-3-2-docs`; the mobile checkout began detached). Debug **8** published both WGT and
+IPK, [run 40204810732](https://github.com/Zokaper/NuvioZWeb/actions/runs/40204810732),
+[prerelease debug-v1.2.9-z1.8](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.8).
+The workflow had to be dispatched by its registered id `340695489`; filename lookup returned 404.
+The configured, locally signed WGT is installed on the Q60B. Its mode is back on **Classic**;
+quality limit remains **Balanced**. Browser test overrides were removed by reloading the normal build.
 
 ### Working in the browser (from 2026-10-25)
 
