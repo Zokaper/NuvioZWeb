@@ -7,7 +7,7 @@ Last updated: 2026-10-25
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                       |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                      |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                  |
-| Debug counter        | `DEBUG_BUILD=9` in `debug-version.properties`; step 3.3 debug publication pending final checks. Previous: [debug-v1.2.9-z1.8](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.8).                                                              |
+| Debug counter        | `DEBUG_BUILD=9`; [debug-v1.2.9-z1.9](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.9) published (WGT + IPK).                                                                                                                                 |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-3.3 implemented. Remaining playback work includes Instant / measured connection, P12 transition coordination and P16 source probing.                                                                   |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                               |
 | Verified             | `npm run test:z` **417/417**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and both packages pass; Q60B playback/menu/source-panel and first-launch checks below |
@@ -52,6 +52,14 @@ Last updated: 2026-10-25
   The browser harness replaces RPC boundaries only, uses real TV stores, and leaves account data
   unchanged. Additional scripted screen/router tests cover stale defaults, Samsung OK, Instant
   preservation, profile/account switches, Back during lookup and the onboarding continuation.
+
+**Committed / published:** code `8f589f18` pushed on `claude/phase-10-trunk`; canonical docs
+`7cb483a14` pushed to `nuvio-z` main. Debug **9** published WGT + IPK in
+[run 40210379662](https://github.com/Zokaper/NuvioZWeb/actions/runs/40210379662) from the exact code commit.
+The configured local build is installed on the Q60B and left at Home on Classic. Its completed
+selector stays dismissed after reinstall/relaunch and profile selection. Import on a new TV profile
+and Back on hardware remain open checks; browser coverage is recorded above. Dispatch must name
+`--repo Zokaper/NuvioZWeb` explicitly because `gh` otherwise resolves the upstream repository.
 
 ## Phase 10 restart (2026-10-25)
 
