@@ -4,6 +4,7 @@ import { renderPlaybackGeneralBody } from "./settingsScreenPlaybackMarkup-01-gen
 import { renderPlaybackAudioBody } from "./settingsScreenPlaybackMarkup-02-audio.js";
 import { renderPlaybackSubtitleBody } from "./settingsScreenPlaybackMarkup-04-subtitles.js";
 import { renderPlaybackP2pBody } from "./settingsScreenPlaybackMarkup-05-p2p.js";
+import { renderZPlaybackModeRow, renderZSourcePreferencesBody } from "../../../z/settings/zPlaybackSettingsSection.js";
 
 export function renderPlaybackSectionMarkup(model) {
   const { TorrentSettingsStore, Platform, TizenCapabilities, SECTION_META, t } = internals;
@@ -25,12 +26,20 @@ export function renderPlaybackSectionMarkup(model) {
           ${this.renderSectionHeader(SECTION_META.find((item) => item.id === "playback"))}
           <div class="settings-group-card settings-group-card-fill">
             <div class="settings-stack">
+              ${renderZPlaybackModeRow.call(this)}
               ${this.renderCollapsibleRow({
                 focusKey: "playback:toggle:general",
                 title: t("settings.playback.groups.general.title"),
                 subtitle: t("settings.playback.groups.general.subtitle"),
                 expanded: Boolean(expanded.general),
                 bodyHtml: generalBody
+              })}
+              ${this.renderCollapsibleRow({
+                focusKey: "playback:toggle:sources",
+                title: t("settings_playback_section_source_preferences"),
+                subtitle: t("settings_playback_section_source_preferences_subtitle"),
+                expanded: Boolean(expanded.sources),
+                bodyHtml: renderZSourcePreferencesBody.call(this)
               })}
               ${this.renderCollapsibleRow({
                 focusKey: "playback:toggle:audio",

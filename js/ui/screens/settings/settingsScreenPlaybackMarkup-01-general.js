@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as internals from "./settingsScreenContext.js";
+import { isZAutoStreamSelectionInert, zAutoStreamSelectionNote } from "../../../z/settings/zPlaybackSettingsSection.js";
 
 export function renderPlaybackGeneralBody(model) {
   const {
@@ -14,6 +15,7 @@ export function renderPlaybackGeneralBody(model) {
     arePluginsSupported,
     translateOptionCaption
   } = internals;
+  const zAutoStreamInert = isZAutoStreamSelectionInert();
   return `
           <div class="settings-stack">
             ${this.renderToggleRow({
@@ -162,11 +164,14 @@ export function renderPlaybackGeneralBody(model) {
             ${this.renderActionRow({
               focusKey: "playback:autoStreamMode",
               title: t("autoplay_stream_selection", {}, "Auto Stream Selection"),
-              subtitle: translateOptionCaption(
-                STREAM_AUTOPLAY_MODE_OPTIONS.find((option) => String(option.id) === String(model.player.streamAutoPlayMode)),
-                t("autoplay_mode_manual_desc", {}, "Always show the source list and let me choose.")
-              ),
-              value: labelForOptionId(STREAM_AUTOPLAY_MODE_OPTIONS, model.player.streamAutoPlayMode, "Manual (choose stream)")
+              subtitle: zAutoStreamInert
+                ? zAutoStreamSelectionNote()
+                : translateOptionCaption(
+                    STREAM_AUTOPLAY_MODE_OPTIONS.find((option) => String(option.id) === String(model.player.streamAutoPlayMode)),
+                    t("autoplay_mode_manual_desc", {}, "Always show the source list and let me choose.")
+                  ),
+              value: labelForOptionId(STREAM_AUTOPLAY_MODE_OPTIONS, model.player.streamAutoPlayMode, "Manual (choose stream)"),
+              disabled: zAutoStreamInert
             })}
             ${this.renderActionRow({
               focusKey: "playback:autoStreamTimeout",
@@ -176,7 +181,8 @@ export function renderPlaybackGeneralBody(model) {
                 STREAM_AUTOPLAY_TIMEOUT_OPTIONS,
                 model.player.streamAutoPlayTimeoutSeconds,
                 `${model.player.streamAutoPlayTimeoutSeconds}s`
-              )
+              ),
+              disabled: zAutoStreamInert
             })}
             ${
               String(model.player.streamAutoPlayMode || "MANUAL") !== "MANUAL"
@@ -185,7 +191,8 @@ export function renderPlaybackGeneralBody(model) {
               focusKey: "playback:autoStreamSource",
               title: t("autoplay_scope", {}, "Auto-play Source Scope"),
               subtitle: labelForOptionId(STREAM_AUTOPLAY_SOURCE_OPTIONS, model.player.streamAutoPlaySource, "All sources"),
-              value: labelForOptionId(STREAM_AUTOPLAY_SOURCE_OPTIONS, model.player.streamAutoPlaySource, "All sources")
+              value: labelForOptionId(STREAM_AUTOPLAY_SOURCE_OPTIONS, model.player.streamAutoPlaySource, "All sources"),
+              disabled: zAutoStreamInert
             })}
             ${
               String(model.player.streamAutoPlaySource || "ALL_SOURCES") !== "ENABLED_PLUGINS_ONLY"
@@ -195,7 +202,8 @@ export function renderPlaybackGeneralBody(model) {
                     subtitle: t("autoplay_scope_addons_desc", {}, "Auto-play only considers selected installed addons."),
                     value: model.player.streamAutoPlaySelectedAddons?.length
                       ? String(model.player.streamAutoPlaySelectedAddons.length)
-                      : t("autoplay_all_addons", {}, "All installed addons")
+                      : t("autoplay_all_addons", {}, "All installed addons"),
+                    disabled: zAutoStreamInert
                   })
                 : ""
             }
@@ -207,7 +215,8 @@ export function renderPlaybackGeneralBody(model) {
                     subtitle: t("autoplay_scope_plugins_desc", {}, "Auto-play only considers selected enabled plugins."),
                     value: model.player.streamAutoPlaySelectedPlugins?.length
                       ? String(model.player.streamAutoPlaySelectedPlugins.length)
-                      : t("autoplay_all_plugins", {}, "All enabled plugins")
+                      : t("autoplay_all_plugins", {}, "All enabled plugins"),
+                    disabled: zAutoStreamInert
                   })
                 : ""
             }`
@@ -220,7 +229,8 @@ export function renderPlaybackGeneralBody(model) {
               focusKey: "playback:autoStreamRegex",
               title: t("autoplay_regex_title", {}, "Regex Pattern"),
               subtitle: t("autoplay_regex_matches", {}, "Matches stream name, title, description, addon and URL."),
-              value: String(model.player.streamAutoPlayRegex || "").trim() || t("common.notSet", {}, "Not set")
+              value: String(model.player.streamAutoPlayRegex || "").trim() || t("common.notSet", {}, "Not set"),
+              disabled: zAutoStreamInert
             })}`
                 : ""
             }

@@ -149,6 +149,7 @@ export function createDefaultExpandedState(sectionId) {
   if (sectionId === "playback") {
     return {
       general: false,
+      sources: false,
       stream: false,
       audio: false,
       subtitles: false,

@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as internals from "./settingsScreenContext.js";
+import { renderDescribedOptionCopy, zOptionClasses } from "../../../z/settings/zOptionDialog.js";
 
 export function createSettingsScreenMethods02() {
   const {
@@ -294,7 +295,7 @@ export function createSettingsScreenMethods02() {
                       ? this.optionDialog.selectedIds?.has?.(optionId)
                       : optionId === String(this.optionDialog.selectedId);
                     return `
-                  <button class="settings-dialog-option settings-content-focusable focusable${useLanguageRenderer ? " settings-language-option" : ""}${useSingleChoiceRenderer ? " settings-single-choice-option" : ""}${isSelected ? " is-selected" : ""}"
+                  <button class="settings-dialog-option settings-content-focusable focusable${useLanguageRenderer ? " settings-language-option" : ""}${useSingleChoiceRenderer ? " settings-single-choice-option" : ""}${isSelected ? " is-selected" : ""}${zOptionClasses(option)}"
                           data-zone="dialog"
                           data-dialog-index="${index}"
                           data-dialog-option-id="${escapeHtml(option.id)}">
@@ -315,7 +316,7 @@ export function createSettingsScreenMethods02() {
                           ? `<span class="settings-dialog-option-label">${escapeHtml(translateOptionLabel(option))}</span><span class="settings-language-option-check" aria-hidden="true">${isSelected ? "&#10003;" : ""}</span>`
                           : useSingleChoiceRenderer
                             ? `<span class="settings-dialog-option-label">${escapeHtml(translateOptionLabel(option))}</span>${isSelected ? '<span class="settings-single-choice-option-check" aria-hidden="true">&#10003;</span>' : ""}`
-                            : `<span class="settings-dialog-option-label">${escapeHtml(translateOptionLabel(option))}</span>`
+                            : renderDescribedOptionCopy(option, escapeHtml(translateOptionLabel(option)), escapeHtml)
                     }
                   </button>
                 `;

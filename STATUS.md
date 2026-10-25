@@ -8,9 +8,9 @@ Last updated: 2026-10-25
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                       |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                   |
 | Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                                                         |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: step 1 (pure logic) and **step 2 (settings + sync) done**; next is step 3, the screens, built in the browser                                                    |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-2 done; **step 3.1 (settings rows) done**; next is 3.2, the source screen (Streamlined, overlay, fallback, the source-list freeze)                      |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                |
-| Verified             | `npm run test:z` **330/330**; upstream parity unchanged (all but the known vanilla failure); `lint:runtime` and `format:check` clean; the app loads, signs in and syncs in the browser (PC only)                  |
+| Verified             | `npm run test:z` **333/333**; `lint:runtime` and `format:check` clean; in the browser (PC only): the settings rows, their dialogs, and a push + pull of the playback keys on the account                          |
 | **Not** verified     | Anything past sign-in. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
 
 ## Phase 10 restart (2026-10-25)
@@ -66,8 +66,30 @@ was ported from (`59a02f4af`, 2026-08-22) to `nuvio-z` main, and each module's n
   context; translates the TV's language sentinels; torrents need platform capability **and** the setting.
 - **Sync is per family.** Mobile, desktop and TV each have their own blob on the official account
   (`sync_push_profile_settings_blob`, `p_platform`). The TV does not see the phone's mode until the
-  cross-family import is built (with the first-launch selector, step 3). **Push not yet watched end to
-  end:** nothing writes the store until the settings UI exists.
+  cross-family import is built (with the first-launch selector, step 3). Push and pull were watched end to
+  end in step 3.1, below.
+
+### Stage 2, step 3.1: the settings rows (2026-10-25)
+
+Settings → Playback now opens with a **Playback mode** row, and a **Source Preferences** group sits under
+General: audio language matching, quality limit, dynamic range, codec, audio, built-in subtitles, torrent
+auto-pick. Mobile's rows, keys and English copy (`PlaybackSettingsPage`, `PlaybackPreferenceCopy.kt`), in
+upstream's TV row styling (Stage 4 restyles). The logic is Z-owned (`js/z/settings/zPlaybackSettingsSection.js`,
+`zOptionDialog.js`, `css/z.css`); upstream files get import-and-call seams, listed in PATCH-SURFACE.
+
+- The option dialog gains a sentence per option (mobile's choice cards) and a greyed, inert option: Instant is
+  listed as "Not available in this version" and OK on it does nothing.
+- **Classic greys every Source Preferences row and says why**; the rows stay focusable so the reason can be
+  read. The mirror image: upstream's six Auto Stream Selection rows are greyed outside Classic with mobile's
+  note (mobile moved them to Advanced; here they stay in place).
+- Torrent auto-pick is greyed with upstream's "Not supported on this TV" wherever `TizenCapabilities` says P2P
+  is unsupported.
+- **Watched in the browser, against the maintainer's account:** choosing Streamlined pushed only
+  `playback_mode` into the `tv` blob; Balanced added `playback_quality_ceiling_mbps = 20`; back to Classic
+  rewrote the mode. Wiping the local mode and reloading pulled `STREAMLINED` back. The account is left on
+  **Classic + Balanced**.
+- **Nothing reads the mode yet.** Streamlined greys upstream's auto-play but the stream screen still behaves
+  as Classic until step 3.2 wires the router. Not on the TV yet.
 
 ### Working in the browser (from 2026-10-25)
 

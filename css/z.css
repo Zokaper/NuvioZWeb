@@ -1,0 +1,29 @@
+/* Nuvio Z styles. The build bundles every extra stylesheet in css/ after upstream's components, so
+   this file needs no import seam. Upstream's TV styling stays the base until Stage 4. */
+
+/* An option with a sentence under its label (js/z/settings/zOptionDialog.js). Upstream's option is a
+   pill sized for one line; a described one becomes a rounded card. No :has() - Tizen 6.5 is Chromium 85. */
+.settings-dialog-option.z-described {
+  border-radius: 28px;
+}
+
+.z-option-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.z-option-description {
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 400;
+  opacity: 0.72;
+}
+
+.settings-dialog-option.is-disabled {
+  opacity: 0.46;
+}
+
+.settings-dialog-option.is-disabled.focused {
+  opacity: 0.7;
+}
