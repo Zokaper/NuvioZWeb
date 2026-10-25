@@ -231,3 +231,71 @@
   font-size: 13px;
   margin-bottom: 2px;
 }
+/* Standalone TV arrival. No blur, scrolling or animated focus shadows. */
+.z-setup-screen {
+  box-sizing: border-box;
+  padding: 72px 96px;
+  max-width: 1800px;
+  margin: 0 auto;
+  color: var(--text-primary, #fff);
+}
+.z-setup-logo {
+  width: 240px;
+  height: 64px;
+  object-fit: contain;
+  object-position: left center;
+}
+.z-setup-screen h1 {
+  font-size: 44px;
+  margin: 24px 0;
+}
+.z-setup-screen p {
+  font-size: 25px;
+  line-height: 1.45;
+  margin: 20px 0;
+}
+.z-setup-card {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 24px 28px;
+  margin: 16px 0;
+  border: 3px solid #555;
+  border-radius: 14px;
+  background: #20232a;
+  color: inherit;
+  text-align: left;
+}
+.z-setup-card strong {
+  display: block;
+  font-size: 30px;
+}
+.z-setup-card span {
+  display: block;
+  margin-top: 16px;
+  font-size: 25px;
+  line-height: 1.4;
+}
+.z-setup-card[data-selected="true"] {
+  background: #303b50;
+  border-color: #99baff;
+}
+.z-setup-card[aria-disabled="true"] {
+  color: #a0a3aa;
+  background: #1b1d22;
+}
+.z-setup-card.focused {
+  border-color: #fff;
+}
+.z-setup-modes {
+  display: flex;
+  margin: 24px -12px;
+}
+.z-setup-modes .z-setup-card {
+  width: calc(33.333% - 24px);
+  min-height: 260px;
+  margin: 12px;
+}
+.z-setup-screen .z-setup-hint {
+  color: #c2c6cf;
+}

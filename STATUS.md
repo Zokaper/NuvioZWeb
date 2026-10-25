@@ -2,16 +2,56 @@
 
 Last updated: 2026-10-25
 
-|                      |                                                                                                                                                                                                                                                                |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                     |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                    |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                |
-| Debug counter        | `DEBUG_BUILD=8` in `debug-version.properties` (continues the 0.3.40 line's counter); [debug-v1.2.9-z1.8](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.8) published                                                                        |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-2, 3.1 and **3.2 (source screen + player)** implemented; next is 3.3, first-launch selector + cross-family import                                                                                    |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                             |
-| Verified             | `npm run test:z` **394/394**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and Tizen package pass; Q60B playback/menu/source-panel checks below                |
-| **Not** verified     | Physical failover and early-Tizen/webOS behavior remain unverified. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
+|                      |                                                                                                                                                                                                                                                                  |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                       |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                      |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                  |
+| Debug counter        | `DEBUG_BUILD=9` in `debug-version.properties`; step 3.3 debug publication pending final checks. Previous: [debug-v1.2.9-z1.8](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.8).                                                              |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-3.3 implemented. Remaining playback work includes Instant / measured connection, P12 transition coordination and P16 source probing.                                                                   |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                               |
+| Verified             | `npm run test:z` **417/417**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and both packages pass; Q60B playback/menu/source-panel and first-launch checks below |
+| **Not** verified     | Physical failover and early-Tizen/webOS behavior remain unverified. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset.   |
+
+## Stage 2, step 3.3: first-launch selector and cross-family import (2026-10-25)
+
+- One Z-owned router decorator gates entry after authentication/profile selection, preserving the
+  intended destination and upstream experience/addon setup. It also catches existing installs and
+  restored routes. Completion is **per profile, local to this TV**, never synced or seeded from the
+  primary profile. Back keeps current values and marks the offer handled; Settings -> Playback
+  remains the way to change the mode later.
+- Classic, Streamlined and **Instant** are visible. Instant is focusable for its explanation but
+  cannot be chosen until the single `isSelectable` rule enables it. Classic starts selected on an
+  untouched profile; existing TV choices are retained. Imported/stored Instant runs Streamlined
+  temporarily; Continue preserves raw Instant unless the user explicitly chooses another mode.
+- Signed-in arrival reads the **TV blob first**, then offers Mobile/Desktop only when no TV blob
+  or local mode/edit exists. Import requires an explicit choice, completed Kotlin setup (revision
+  **8 or later**) and a nonempty supported payload. Kotlin's player allowlist is ported whole;
+  unsupported TV rungs are explicitly omitted, and supported subtitle/overlay/binge-group keys are
+  translated to upstream's TV adapter. This step imports playback/language preferences only, not
+  appearance, downloads, Social or credentials. Quality limits, HDR, codec, audio hardware, torrent
+  permission, player engines/layout and subtitle rendering stay on the TV.
+- An eight-second lookup budget, Retry / Set up separately and immediate Back avoid a network gate.
+  Import rechecks TV state under the existing settings-sync lock. Pending edits, a newly created TV
+  blob, profile changes, account teardown and late responses cannot overwrite the current profile.
+  Imported settings queue the ordinary **TV-only** push; other families remain independent.
+- Browser automation runs the shipped router/screen/service/stores with synthetic RPC responses in
+  an isolated context. Verified actual language and Instant imports, hardware-setting exclusion,
+  remote arrows/OK, inert Instant, existing-TV restore, Back preservation, once-only completion,
+  retry/separate setup, and 1920x1080 safe-area fit. No test changed the maintainer's account.
+- **Q60B / Tizen 6.5:** configured WGT installed and watched. After profile selection, the existing
+  TV choice was reflected in the selector. Arrows/OK navigate Classic/Streamlined/Instant/Continue;
+  OK on Instant is inert, and choosing Classic then Continue enters Home. Samsung delivered its
+  keys differently from the browser: corrected to use FocusEngine's normalized codes (regression
+  test), and directional focus now uses the existing geometry helper so Down reaches Continue.
+  Final mode is Classic; this flow does not change the quality limit. Hardware import/Back and
+  physical failover remain unverified; import/Back were exercised in the browser. GitHub packages
+  still lack account/TMDB configuration; the local WGT uses ignored configuration.
+  Reinstall/relaunch followed by profile selection reached Home without repeating the selector.
+- **Checks:** 417/417 tests, lint, formatting, configured build, Tizen and webOS packaging pass.
+  The browser harness replaces RPC boundaries only, uses real TV stores, and leaves account data
+  unchanged. Additional scripted screen/router tests cover stale defaults, Samsung OK, Instant
+  preservation, profile/account switches, Back during lookup and the onboarding continuation.
 
 ## Phase 10 restart (2026-10-25)
 

@@ -13,7 +13,9 @@ Last updated 2026-10-25.
 > not) still stand. The **implementation state does not**: every "ported" or "landed" row describes
 > the archived 0.3.40 line (tag `z-0.3.40-archive`). On the 1.2.9 trunk, Stage 2 steps 1-3.2 now wire the pure rules, settings/sync, quality columns,
 > loading host, three-source chain and startup watchdog. These are browser-verified; see `STATUS.md`
-> for the hardware boundary. Instant, first-launch import, source probing and the richer coordinated
+> for the hardware boundary. Step 3.3 adds the standalone mode selector and explicit one-time import
+> of compatible playback/language preferences from Mobile/Desktop. Instant remains visible but inert;
+> imported Instant is retained and runs Streamlined until available. Source probing and the richer coordinated
 > next-episode transition remain unfinished. The older per-row state below remains archival unless
 > explicitly covered by that handoff.
 

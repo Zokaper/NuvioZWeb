@@ -31,6 +31,7 @@ import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
 import { RouteStateStore } from "./routeStateStore.js";
 import { Router } from "./routerState.js";
 import { LocalStore } from "../../core/storage/localStore.js";
+import { installPlaybackSetup } from "../../z/settings/installPlaybackSetup.js";
 
 import { createRouterMethods01 } from "./routerMethods-01-get-route-state-key.js";
 import { createRouterMethods02 } from "./routerMethods-02-complete-route-return-back-guard.js";
@@ -198,3 +199,5 @@ Object.assign(Router, {
   ...createRouterMethods02(),
   ...createRouterMethods03()
 });
+
+installPlaybackSetup(Router, NON_BACKSTACK_ROUTES, WEBOS_NON_RESTORABLE_ROUTES);

@@ -21,8 +21,8 @@ import {
 
 /**
  * Each stored field, mobile's key for it, and how a payload value is read. A null key is stored
- * locally only: `playback_mode_selector_seen` is a fact about this television, and mobile keeps it
- * local too.
+ * locally only: `playback_mode_selector_seen` is a fact about this television. The KMP apps now use
+ * their setup wizard revision for completion instead.
  */
 export const PLAYBACK_SETTING_FIELDS = [
   ["playbackMode", "playback_mode", "string"],
