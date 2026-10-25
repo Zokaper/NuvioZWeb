@@ -8,9 +8,9 @@ Last updated: 2026-10-25
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                       |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                   |
 | Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                                                         |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 (the new trunk): tooling + identity committed; next is the first debug build on the TV                                                                           |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 done; **Stage 2 step 1 (pure playback logic) done**; next is step 2, playback settings + sync                                                                    |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                |
-| Verified             | `npm run test:z` 6/6; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, the WGT's `config.xml` carries the Z ids (PC only)                                   |
+| Verified             | `npm run test:z` **312/312**; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, Z ids in `config.xml` (PC only)                                              |
 | **Not** verified     | Anything past sign-in. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
 
 ## Phase 10 restart (2026-10-25)
@@ -27,6 +27,31 @@ The maintainer decided on 2026-10-22 to restart the TV port from current upstrea
   `js/ui/screens/settings/zSettingsAbout.js`) and covered by `z-tests/` (`npm run test:z`, which the debug
   workflow gates on); upstream files get import-and-call seams only. Upstream-owned files touched are listed in
   `nuvio-z/Docs/PATCH-SURFACE.md` under _NuvioZWeb_.
+
+### Stage 2, step 1: the pure playback logic (2026-10-25)
+
+Ported from **today's** `nuvio-z` Kotlin into Z-owned `js/core/z/`, beside upstream 1.2.9's own
+`js/core/streams/`. The 0.3.40 port's modules were the starting point; each was brought from the Kotlin it
+was ported from (`59a02f4af`, 2026-08-22) to `nuvio-z` main, and each module's new Kotlin tests came with it.
+
+| Module                                                                               | What changed since August                                                                                           |
+| ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `media/releaseTags`                                                                  | CAM/TS/telesync/telecine; `isTheatricalCapture`, `isAiUpscaled`                                                     |
+| `language/languageCodes`                                                             | release-name language evidence split into audio vs subtitles; multi-word tokens across delimiters; sentinel options |
+| `sources/sourceFacts`                                                                | subtitle claims, dubbed, hard-subbed, AI-upscale, `hasStructuredLanguages`; subtitles no longer mirror audio        |
+| `sources/sourceRanking`                                                              | resolution tiers (8K/4K, AI upscale, CAM sinks), subtitle bonus, built-in-subtitle hint, penalties                  |
+| `playback/playbackModeRouter`                                                        | party-resolve rung (always false on TV)                                                                             |
+| `playback/playbackSelectionContext`                                                  | identity, subtitle languages, display height; **strictness default PREFER**; `automaticEmbeddedSubtitleLanguage`    |
+| `playback/playbackSourceSelector`                                                    | content-identity partition; explicit "not cached" never auto-plays; AIOStreams is debrid-backed; `HDR10/DV` labels  |
+| `playback/playbackQualityOptions`                                                    | context-aware quality order; `bandFor` / `isTopBandBelowMax`; `sourceKey`                                           |
+| `playback/playbackStartupWatchdog`                                                   | 35 s evidence-of-life deadline; only advancement starts; hold/seek rules (party-only)                               |
+| `playback/streamRouteSurface`                                                        | new rule order; `uncoverReason` + `hasSilentUncover`; `playerMayOfferSourceList`; dead-end reporting                |
+| new: `contentIdentityGuard`, `playbackLanguageResolution`, `sourceLanguageInference` | wrong-content partition; sentinel resolution + one-shot audio migration; what the loading UI may claim              |
+
+**Nothing in the app imports these yet - no behaviour has changed.** Deliberately left for later steps:
+`PlaybackSelectionContextFactory` (needs the player settings, step 2), and the loading-experience modules
+(`PlaybackLoadingState/Session`, `PlaybackSourceProbe`, `PlaybackPosition`, `VideoPresentation`,
+`PlaybackAttemptLog`, `ConnectionProbeSettlement`, `AutoChainFatal`), which port with the loading screen.
 
 ### Vanilla 1.2.9 on the test TV (Stage 0, maintainer-driven)
 

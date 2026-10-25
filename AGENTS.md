@@ -101,14 +101,14 @@ is **not** a bug to fix.
 2. **All twelve playback source files are byte-identical between `nuvio-z` and `NuvioZDesktop`**
    (modulo line endings, verified with `diff --strip-trailing-cr`). Port from `nuvio-z`; there is
    nothing to reconcile between the two.
-3. **Pure modules stay import-free of app state.** `js/core/media/releaseTags.js`,
-   `js/core/language/languageCodes.js`, `js/core/sources/**` and `js/core/playback/**` must run
-   under plain `node --test` with no DOM, no stores and no bootstrap. One import of a store takes
+3. **Pure modules stay import-free of app state.** Everything under `js/core/z/` (the ported
+   vocabularies, facts, ranking and playback rules) must run under plain `node --test` (`npm run
+test:z`, suites in `z-tests/`) with no DOM, no stores and no bootstrap. One import of a store takes
    the whole group with it. This is the same rule the Kotlin follows for `run-pure-suites.sh`.
 4. **Tests are scoped on purpose.** Upstream's `npm test` needs a `tests/` folder upstream
    gitignores, so it fails on a clean clone; its `scripts/test-*.mjs` parity scripts are the real
    vanilla suite. **Baseline at 1.2.9: 20 of 21 pass; `test-tmdb-detail-parity` fails on upstream's
-   own stale `config.js` stub** - a vanilla failure, not ours. Z's pure suites arrive with Stage 2;
+   own stale `config.js` stub** - a vanilla failure, not ours. Z's own suites are `npm run test:z`;
    cover the pure modules, do not re-grow a repo-wide suite.
 5. **Behaviour that mobile and desktop share must stay in one place.** If an ordering, a precedence
    table or a constant exists there, port it whole rather than reimplementing the parts this app
