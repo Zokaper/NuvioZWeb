@@ -7,7 +7,7 @@ Last updated: 2026-10-26
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                       |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                      |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                  |
-| Debug counter        | `DEBUG_BUILD=10` (Z screen restyle); debug 9 was the last published before it.                                                                                                                                                                                   |
+| Debug counter        | `DEBUG_BUILD=10`; [debug-v1.2.9-z1.10](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.10) published (WGT + IPK, unconfigured), the Z screen restyle.                                                                                          |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-3.3 implemented. Remaining playback work includes Instant / measured connection, P12 transition coordination and P16 source probing.                                                                   |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                               |
 | Verified             | `npm run test:z` **417/417**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and both packages pass; Q60B playback/menu/source-panel and first-launch checks below |
@@ -42,7 +42,10 @@ and their colours from the TV theme's variables, so every accent theme reaches t
   from the real modules in headless Edge (scenes listed in `z-render/scenes.js`). It is how these
   were reviewed; the maintainer approved the renders.
 - **Checks:** `npm run test:z` 417/417 (the lifecycle stub gained `cssImage`), lint, format, build.
-  **Browser-rendered only so far**; the TV pass is below once it happens.
+  **Browser-rendered only so far.** Code `4206adc0`, debug 10 published in run 40243836550. The
+  configured WGT is packaged but **not installed**: on 2026-10-26 the Q60B answered ping but refused
+  `sdb connect` (standby). Next: install with `tv-tools/tvinstall.cjs`, then watch all three screens
+  with the remote, including focus on every cell and the logo fallback.
 
 **Open question for the maintainer:** the TV sheet lets a quality be picked while sources are still
 arriving (step 3.2's behaviour); mobile and desktop show only the skeleton until the figures settle.
