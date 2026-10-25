@@ -13,7 +13,7 @@ const boundaries = {
   "playerSettingsStore.js": "export const PlayerSettingsStore = { get: () => ({}) };",
   "tizenCapabilities.js": "export const TizenCapabilities = { isP2pUnsupported: () => false };",
   "playbackPresentation.js":
-    "export const showPlaybackLoading = (state) => { globalThis.zHarness.loading = state; }; export const hidePlaybackLoading = () => { globalThis.zHarness.loading = null; }; export const t = key => key; export const escapeHtml = String; export const formatSize = String;"
+    "export const showPlaybackLoading = (state) => { globalThis.zHarness.loading = state; }; export const hidePlaybackLoading = () => { globalThis.zHarness.loading = null; }; export const t = key => key; export const escapeHtml = String; export const formatSize = String; export const cssImage = String;"
 };
 async function controllerModule(file) {
   const result = await build({

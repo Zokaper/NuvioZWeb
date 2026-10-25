@@ -20,10 +20,28 @@ export const t = (key, params = {}) => I18n.t(key, params);
 export function formatSize(bytes) {
   return bytes > 0 ? `${(bytes / 1073741824).toFixed(1)} GB` : UNKNOWN_FACT;
 }
+// An artwork URL as a CSS background, under an optional scrim layer: one element, one image.
+export function cssImage(url, scrim = null) {
+  if (!url) return "";
+  const image = `url("${String(url).replace(/["\\\r\n]/g, "")}")`;
+  return scrim ? `${scrim}, ${image}` : image;
+}
+// The player's scrim, kept verbatim from PlaybackLoadingScreen.kt so both sides of the hand-off
+// darken the same artwork to the same values.
+const LOADING_SCRIM =
+  "linear-gradient(180deg, rgba(0,0,0,0.3), rgba(0,0,0,0.6) 33%, rgba(0,0,0,0.8) 66%, rgba(0,0,0,0.9))";
 let host = null;
+// Compared against what was last written, not host.innerHTML: the browser re-serializes markup,
+// so that comparison never matched and the whole screen was rebuilt on every 250 ms tick.
+let hostMarkup = null;
+let hostImage = null;
+// A logo that failed to load falls back to the title for the rest of the app session.
+const failedLogos = new Set();
 export function hidePlaybackLoading() {
   host?.remove();
   host = null;
+  hostMarkup = null;
+  hostImage = null;
 }
 export function showPlaybackLoading({
   params = {},
@@ -58,18 +76,51 @@ export function showPlaybackLoading({
     preferredAudioLanguage: context.preferredAudioLanguage
   });
   const title = params.itemTitle || params.playerTitle || "";
+  const subtitle = params.episodeTitle || params.playerSubtitle || "";
+  const logo = params.playerLogoUrl || params.logo || "";
   const backdrop = params.playerBackdropUrl || params.backdrop || params.background || "";
-  host.style.backgroundImage = backdrop
-    ? `linear-gradient(0deg, #101118 8%, rgba(16,17,24,.83) 60%, rgba(16,17,24,.65)), url("${String(backdrop).replace(/["\\\r\n]/g, "")}")`
-    : "none";
-  const markup = `<div class="z-loading-content"><h1>${escapeHtml(title)}</h1><p>${escapeHtml(params.episodeTitle || params.playerSubtitle || "")}</p>
-    <div class="z-loading-facts">${slots.map((slot, index) => `<div><small>${escapeHtml(t(`playback_fact_${labels[index]}`))}</small><strong>${escapeHtml(slot.value ?? UNKNOWN_FACT)}</strong></div>`).join("")}</div>
-    <p>${escapeHtml(providerLine(facts) || "")}</p><div class="z-loading-escape">${canEscape ? `<button class="focusable focused" data-z-manual>${escapeHtml(t("playback_quality_manual"))}</button>` : ""}</div>
-    <div class="z-loading-status">${!exhausted ? '<span class="z-loading-spinner"></span>' : ""}<span>${escapeHtml(t(exhausted ? "playback_quality_no_match" : `playback_progress_${step}`))}</span>${attempt > 1 ? `<span>${escapeHtml(t("playback_progress_attempt", [attempt, PLAYBACK_MAX_ATTEMPTS]))}</span>` : ""}</div>
-    <p class="z-loading-failure">${escapeHtml(failure ? (failure.reason ? t("playback_progress_source_failed_reason", [failure.label || "Source", failure.reason]) : t("playback_progress_source_failed", [failure.label || "Source"])) : "")}</p>
-    <small class="z-release-name">${escapeHtml(releaseNameOf(facts) || "")}</small></div>`;
-  if (host.innerHTML !== markup) {
+  const image = cssImage(backdrop, LOADING_SCRIM) || "none";
+  if (hostImage !== image) {
+    host.style.backgroundImage = image;
+    hostImage = image;
+  }
+  // Logo, or the title, or nothing - OpeningOverlay's fallback chain.
+  const heading =
+    logo && !failedLogos.has(logo)
+      ? `<img src="${escapeHtml(logo)}" alt="${escapeHtml(title)}" data-z-logo />`
+      : title
+        ? `<h1>${escapeHtml(title)}</h1>`
+        : "";
+  const stage = [
+    t(exhausted ? "playback_quality_no_match" : `playback_progress_${step}`),
+    attempt > 1 ? t("playback_progress_attempt", [attempt, PLAYBACK_MAX_ATTEMPTS]) : null
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const failureText = failure
+    ? failure.reason
+      ? t("playback_progress_source_failed_reason", [failure.label || "Source", failure.reason])
+      : t("playback_progress_source_failed", [failure.label || "Source"])
+    : "";
+  const provider = providerLine(facts);
+  const markup = `<div class="z-loading-title"><div>${heading}${subtitle ? `<p class="z-loading-subtitle">${escapeHtml(subtitle)}</p>` : ""}</div></div>
+    <div class="z-loading-band">
+      <div class="z-loading-stage${failureText ? " is-failed" : ""}">${escapeHtml(stage)}${failureText ? `<small>${escapeHtml(failureText)}</small>` : ""}</div>
+      <div class="z-loading-facts">${slots.map((slot, index) => `<div><small>${escapeHtml(t(`playback_fact_${labels[index]}`))}</small><strong${slot.value == null ? ' class="is-unknown"' : ""}>${escapeHtml(slot.value ?? UNKNOWN_FACT)}</strong></div>`).join("")}</div>
+      ${provider ? `<div class="z-loading-provider">${escapeHtml(provider)}</div>` : ""}
+      <div class="z-loading-escape"><span class="z-release-name">${escapeHtml(releaseNameOf(facts) || "")}</span>${canEscape ? `<button class="z-quiet-button focusable focused" data-z-manual>${escapeHtml(t("playback_quality_manual"))}</button>` : ""}</div>
+      <div class="z-progress-line${exhausted ? " is-stopped" : ""}"><span></span></div>
+    </div>`;
+  if (hostMarkup !== markup) {
     host.innerHTML = markup;
+    hostMarkup = markup;
+    const logoImage = host.querySelector("[data-z-logo]");
+    if (logoImage)
+      logoImage.onerror = () => {
+        failedLogos.add(logo);
+        logoImage.outerHTML = title ? `<h1>${escapeHtml(title)}</h1>` : "";
+        hostMarkup = null;
+      };
   }
   // Ownership changes at handoff even when every visible word stays identical.
   const button = host.querySelector("[data-z-manual]");

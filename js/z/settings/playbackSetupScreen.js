@@ -90,24 +90,39 @@ export const PlaybackSetupScreen = {
     this.render();
   },
 
-  button(action, title, description = "", attributes = "") {
-    return `<button class="focusable z-setup-card" data-setup-action="${action}" ${attributes}><strong>${escape(title)}</strong>${description ? `<span>${escape(description)}</span>` : ""}</button>`;
+  // NuvioChoiceCard: an optional radio, the title, a one-line promise, a sentence, and the reason a
+  // greyed card is greyed. Styles are in css/z.css.
+  card(
+    action,
+    { title, tagline = "", description = "", note = "", radio = false, attributes = "" }
+  ) {
+    return `<button class="focusable z-setup-card" data-setup-action="${action}" ${attributes}>${radio ? '<span class="z-setup-radio"></span>' : ""}<span class="z-setup-card-copy"><strong>${escape(title)}</strong>${tagline ? `<span class="z-setup-tagline">${escape(tagline)}</span>` : ""}${description ? `<span class="z-setup-description">${escape(description)}</span>` : ""}${note ? `<span class="z-setup-note">${escape(note)}</span>` : ""}</span></button>`;
+  },
+
+  // The footer's forward action is the filled button; anything beside it is quiet.
+  action(action, label, primary) {
+    return `<button class="focusable ${primary ? "z-primary-button" : "z-quiet-button"}" data-setup-action="${action}">${escape(label)}</button>`;
   },
 
   render(focusAction = null) {
     const mode = this.step === "mode";
     let content;
+    let footer;
     if (mode) {
-      content = `<div class="z-setup-modes" role="radiogroup" aria-label="${escape(t("z_setup_mode_title"))}">${PLAYBACK_MODES.map(
+      content = `<div class="z-setup-choices" role="radiogroup" aria-label="${escape(t("z_setup_mode_title"))}">${PLAYBACK_MODES.map(
         (value) => {
           const available = isSelectable(value);
+          // Greyed and ticked reads as a bug: a withheld mode is never shown selected.
           const selected = available && this.selectedMode === value;
-          return this.button(
-            `mode:${value}`,
-            playbackModeName(value),
-            `${t(`playback_mode_${value.toLowerCase()}_tagline`)}. ${t(`playback_mode_${value.toLowerCase()}_detail`)}${available ? "" : ` · ${t("playback_mode_unavailable")}`}`,
-            `role="radio" aria-checked="${selected}" aria-disabled="${!available}" data-selected="${selected}"`
-          );
+          const key = value.toLowerCase();
+          return this.card(`mode:${value}`, {
+            title: playbackModeName(value),
+            tagline: t(`playback_mode_${key}_tagline`),
+            description: t(`playback_mode_${key}_detail`),
+            note: available ? "" : t("playback_mode_unavailable"),
+            radio: true,
+            attributes: `role="radio" aria-checked="${selected}" aria-disabled="${!available}" data-selected="${selected}"`
+          });
         }
       ).join("")}</div>`;
       if (
@@ -115,24 +130,26 @@ export const PlaybackSetupScreen = {
         !isSelectable(PLAYBACK_MODE.INSTANT) &&
         !this.changedMode
       )
-        content += `<p>${escape(t("z_setup_instant_saved"))}</p>`;
+        content += `<p class="z-setup-notice">${escape(t("z_setup_instant_saved"))}</p>`;
       content += `<p class="z-setup-hint">${escape(t("z_setup_change_later"))}</p>`;
-      content += this.button("continue", t("z_setup_continue"));
+      footer = this.action("continue", t("z_setup_continue"), true);
     } else {
       content = `<p aria-live="polite">${escape(t(this.step === "lookup" ? "z_setup_checking" : "z_setup_import_detail"))}</p>`;
-      content += this.candidates
-        .map(({ family }, index) => this.button(`import:${index}`, t(`z_setup_import_${family}`)))
-        .join("");
-      if (this.lookupFailed) {
-        content += `<p>${escape(t("z_setup_lookup_failed"))}</p>`;
-        content += this.button("retry", t("z_setup_retry"));
-      }
-      content += this.button("separate", t("z_setup_separate"));
+      if (this.candidates.length)
+        content += `<div class="z-setup-choices">${this.candidates
+          .map(({ family }, index) =>
+            this.card(`import:${index}`, { title: t(`z_setup_import_${family}`) })
+          )
+          .join("")}</div>`;
+      if (this.lookupFailed) content += `<p>${escape(t("z_setup_lookup_failed"))}</p>`;
+      footer =
+        (this.lookupFailed ? this.action("retry", t("z_setup_retry"), false) : "") +
+        this.action("separate", t("z_setup_separate"), !this.candidates.length);
     }
-    this.container.innerHTML = `<main class="z-setup-screen">${renderBrandWordmarkImage({ className: "z-setup-logo" })}
+    this.container.innerHTML = `<main class="z-setup-screen"><div class="z-setup-panel">${renderBrandWordmarkImage({ className: "z-setup-logo" })}
       <h1>${escape(t(mode ? "z_setup_mode_title" : "z_setup_import_title"))}</h1>
-      ${this.notice ? `<p role="status">${escape(this.notice)}</p>` : ""}
-      ${content}</main>`;
+      ${this.notice ? `<p class="z-setup-notice" role="status">${escape(this.notice)}</p>` : ""}
+      ${content}<div class="z-setup-footer">${footer}</div></div></main>`;
     this.container.querySelectorAll(".focusable").forEach((node, index) => {
       node.dataset.index = String(index);
     });

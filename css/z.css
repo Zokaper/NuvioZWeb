@@ -1,5 +1,6 @@
 /* Nuvio Z styles. The build bundles every extra stylesheet in css/ after upstream's components, so
-   this file needs no import seam. Upstream's TV styling stays the base until Stage 4. */
+   this file needs no import seam. Upstream's screens keep upstream's TV styling until Stage 4; the
+   Z-only screens below take their look from the Kotlin screens they port. */
 
 /* An option with a sentence under its label (js/z/settings/zOptionDialog.js). Upstream's option is a
    pill sized for one line; a described one becomes a rounded card. No :has() - Tizen 6.5 is Chromium 85. */
@@ -27,275 +28,688 @@
 .settings-dialog-option.is-disabled.focused {
   opacity: 0.7;
 }
-/* Streamlined: a bounded six-column sheet inside the TV's safe area. */
+
+/* ---------------------------------------------------------------------------------------------
+   The Z-owned playback screens: the quality sheet, the loading screen and first-launch setup.
+
+   They have no upstream counterpart, so they take their look from the screens they port -
+   `PlaybackQualitySheet.kt` (its wide branch), `PlaybackLoadingScreen.kt` and the setup wizard's
+   `NuvioChoiceCard` - and their colours from the TV theme's own variables, so every accent theme
+   reaches them. Sizes are the Kotlin dp at about 1.5x, for a 1080p screen read from a sofa.
+   `z-render/render.mjs` draws all three at 1920x1080.
+
+   Stage 3 rules (PLAN-phase-10-tv-web-port.md): no blur or backdrop-filter, no box-shadow focus
+   effects, no will-change, one full-screen image per screen. Focus is a border colour and a
+   background step. Tizen 6.5 is Chromium 85: no `inset`, no `:has()`, and an outline does not
+   follow border-radius there - which is why focus is never an outline.
+   --------------------------------------------------------------------------------------------- */
+
 .z-quality-screen,
-.z-playback-loading {
-  position: fixed;
-  inset: 0;
-  background: #101118;
-  color: #f5f5f7;
-  z-index: 10000;
+.z-playback-loading,
+.z-setup-screen {
+  --z-accent: var(--secondary-color);
+  --z-accent-rgb: var(--secondary-color-rgb);
+  --z-on-accent: var(--on-secondary);
+  --z-focus: var(--focus-color);
+  --z-text: var(--text-color);
+  --z-text-secondary: var(--text-secondary);
+  --z-text-muted: var(--text-tertiary);
+  --z-surface: var(--bg-elevated);
+  --z-card: var(--card-bg);
+  --z-hover: rgb(255 255 255 / 0.08);
+  --z-hairline: rgb(255 255 255 / 0.1);
+  --z-danger: var(--error-color);
+  box-sizing: border-box;
+  color: var(--z-text);
+  font-family: var(--app-font-family);
+}
+
+.z-quality-screen *,
+.z-playback-loading *,
+.z-setup-screen * {
   box-sizing: border-box;
 }
+
+/* A label set above a value: `labelSmall`, upper case, letter-spaced. */
+.z-eyebrow {
+  display: block;
+  font-size: 16px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--z-text-muted);
+}
+
+/* A `TextButton` that does not outshout what it sits beside. */
+.z-quiet-button {
+  padding: 12px 22px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--z-text-secondary);
+  font: inherit;
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.z-quiet-button.focused {
+  border-color: var(--z-focus);
+  background: var(--z-hover);
+  color: var(--z-text);
+}
+
+/* The wizard's filled `Button`. */
+.z-primary-button {
+  min-width: 200px;
+  padding: 16px 40px;
+  border: 2px solid var(--z-accent);
+  border-radius: 999px;
+  background: var(--z-accent);
+  color: var(--z-on-accent);
+  font: inherit;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.z-primary-button.focused {
+  border-color: var(--z-text);
+  background: var(--z-focus);
+}
+
+/* --- Streamlined's quality sheet ----------------------------------------------------------- */
+
+/* The stream screen's artwork under a flat scrim (one layer with the image), so the sheet and
+   the loading screen after it stand on the same picture. */
 .z-quality-screen {
-  padding: 5vh 5vw;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 48px 72px;
+  background-color: var(--bg-color);
+  background-position: center;
+  background-size: cover;
 }
+
+/* The dialog surface the desktop sheet is drawn on. */
 .z-quality-panel {
   width: 100%;
-  max-width: 1660px;
+  max-width: 1640px;
+  padding: 36px 40px 22px;
+  border-radius: 28px;
+  background: var(--z-surface);
 }
-.z-quality-panel h1 {
-  font-size: 34px;
-  margin: 8px 0;
+
+.z-quality-header h1 {
+  margin: 6px 0 0;
+  font-size: 36px;
+  line-height: 44px;
+  font-weight: 600;
 }
-.z-quality-panel p {
-  margin: 8px 0 12px;
-  font-size: 24px;
-  color: #b8bac8;
+
+.z-quality-header p {
+  margin: 6px 0 0;
+  min-height: 30px;
+  font-size: 22px;
+  line-height: 30px;
+  color: var(--z-text-secondary);
 }
-.z-quality-panel small {
-  font-size: 20px;
-  color: #b8bac8;
-}
-.z-quality-columns {
+
+/* Best available: what most plays take, given the weight it earns. */
+.z-quality-hero {
   display: flex;
-  gap: 16px;
-  margin-top: 20px;
+  align-items: center;
+  width: 100%;
+  margin-top: 24px;
+  padding: 20px 30px;
+  border: 2px solid rgb(var(--z-accent-rgb) / 0.45);
+  border-radius: 24px;
+  background: var(--z-hover);
+  color: inherit;
+  font: inherit;
+  text-align: left;
 }
-.z-quality-column {
+
+.z-quality-hero-main {
   flex: 1;
   min-width: 0;
 }
-.z-quality-column h2 {
-  margin: 0 0 10px;
-  font-size: 26px;
+
+.z-quality-hero .z-eyebrow {
+  color: var(--z-accent);
 }
-.z-quality-cell {
+
+.z-quality-hero-line {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  width: 100%;
-  min-height: 108px;
-  margin-bottom: 8px;
-  padding: 8px 12px;
-  color: #f5f5f7;
-  background: #20222e;
-  border: 2px solid #393c4b;
-  border-radius: 12px;
-  text-align: left;
-  font: inherit;
-  font-size: 16px;
+  align-items: center;
+  margin-top: 6px;
 }
-.z-quality-cell strong {
-  font-size: 22px;
-}
-.z-quality-cell span {
-  overflow: hidden;
+
+.z-quality-hero-line strong {
+  margin-right: 16px;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
-.z-quality-cell.z-quality-best {
-  min-height: 110px;
-  padding: 10px 18px;
+
+.z-quality-hero-figure {
+  margin-left: 48px;
+  text-align: right;
 }
+
+.z-quality-hero-figure b {
+  display: block;
+  margin-top: 4px;
+  font-size: 28px;
+  line-height: 36px;
+  font-weight: 500;
+}
+
+/* One column per resolution. Equal widths: the columns are compared across. */
+.z-quality-columns {
+  display: flex;
+  margin: 24px -12px 0;
+}
+
+.z-quality-column {
+  flex: 1;
+  min-width: 0;
+  margin: 0 12px;
+}
+
+.z-quality-column h2 {
+  margin: 0;
+  padding: 0 18px 12px;
+  border-bottom: 1px solid var(--z-hairline);
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.z-quality-cell {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 14px 18px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  background: var(--z-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+/* The row Best available resolves to: marked, not repeated. */
 .z-quality-cell.z-best-match {
-  border-color: #7e87cc;
+  border-color: rgb(var(--z-accent-rgb) / 0.45);
 }
-.z-quality-marks {
-  color: #d7dbf6;
+
+.z-quality-cell-band {
+  display: block;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.z-quality-cell-figures {
+  display: block;
+  margin-top: 6px;
+  font-size: 19px;
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--z-text-secondary);
+  white-space: nowrap;
+}
+
+.z-quality-cell-figures i {
+  margin: 0 8px;
+  font-style: normal;
+  color: var(--z-text-muted);
+}
+
+/* Reserved whether or not there is a provenance, so bands line up across columns. */
+.z-quality-cell-provenance {
+  display: block;
+  height: 22px;
+  margin-top: 4px;
+  font-size: 16px;
+  line-height: 22px;
+  color: var(--z-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.z-quality-screen .z-quality-cam {
+  color: var(--z-danger);
+}
+
+.z-quality-hero.focused,
+.z-quality-cell.focused {
+  border-color: var(--z-focus);
+  background: rgb(255 255 255 / 0.14);
+}
+
+/* One line of outlined marks that sheds the ones that do not fit instead of clipping them: a
+   chip that wraps lands on the hidden second line. */
+.z-chips {
+  display: flex;
+  flex-wrap: wrap;
+  height: 28px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.z-quality-hero-line .z-chips {
+  margin-top: 0;
+}
+
+.z-chip {
+  margin-right: 8px;
+  padding: 2px 9px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.z-chip-accent {
+  color: var(--z-accent);
+}
+
+.z-chip-plain {
+  color: var(--z-text-muted);
+}
+
+.z-chip-audio {
+  color: var(--z-text-secondary);
+}
+
+.z-chip-danger {
+  color: var(--z-danger);
+}
+
+/* Card-shaped placeholders on the real grid's footprint. Static: no shimmer to repaint. */
+.z-skeleton {
+  display: block;
+  border-radius: 18px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.z-quality-skeleton-hero {
+  height: 116px;
+  margin-top: 24px;
+  border-radius: 24px;
+}
+
+.z-quality-skeleton-label {
+  width: 96px;
+  height: 22px;
+  margin: 3px 18px 15px;
+  border-radius: 6px;
+}
+
+.z-quality-skeleton-cell {
+  height: 118px;
+  margin-top: 12px;
+}
+
+.z-quality-empty {
+  padding: 72px 0;
+  font-size: 22px;
+  text-align: center;
+  color: var(--z-text-secondary);
+}
+
+.z-quality-uncached {
+  margin-top: 28px;
+}
+
 .z-quality-footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 14px;
-  gap: 20px;
-  font-size: 22px;
-  color: #b8bac8;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid var(--z-hairline);
 }
-.z-quality-footer button,
-.z-loading-escape button {
-  padding: 16px 24px;
-  background: #252938;
-  color: #fff;
-  border: 2px solid #4e5265;
-  border-radius: 10px;
-  font: inherit;
-  font-size: 23px;
-}
-.z-quality-screen .focused,
-.z-loading-escape .focused {
-  border-color: #c4ccff;
-  background: #3c4568;
-  outline: 3px solid #c4ccff;
-  outline-offset: 3px;
-}
-.z-quality-empty {
-  min-height: 160px;
-  padding-top: 50px;
-}
+
+/* --- The loading screen -------------------------------------------------------------------- */
+
+/* Backdrop and the player's scrim in one layer, cropped and unanimated. */
 .z-playback-loading {
-  display: flex;
-  align-items: flex-end;
-  padding: 8vh 7vw;
-  background-size: cover;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10000;
+  background-color: var(--bg-color);
   background-position: center;
+  background-size: cover;
 }
-.z-loading-content {
-  width: 100%;
+
+/* The logo on the optical centre; the band grows upward from the bottom and cannot push it. */
+.z-loading-title {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 160px 120px;
 }
-.z-loading-content h1 {
-  font-size: 54px;
-  margin: 0 0 12px;
+
+.z-loading-title > div {
+  text-align: center;
 }
-.z-loading-content > p {
+
+.z-loading-title img {
+  width: 480px;
+  height: 270px;
+  object-fit: contain;
+}
+
+.z-loading-title h1 {
+  margin: 0;
+  font-size: 58px;
+  line-height: 68px;
+  font-weight: 800;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.z-loading-subtitle {
+  margin: 14px 0 0;
   font-size: 24px;
-  color: #b8bac8;
-  min-height: 30px;
-  margin: 12px 0;
+  line-height: 32px;
+  color: rgb(255 255 255 / 0.82);
 }
+
+.z-loading-band {
+  position: absolute;
+  right: 96px;
+  bottom: 56px;
+  left: 96px;
+}
+
+.z-loading-band > * + * {
+  margin-top: 18px;
+}
+
+.z-loading-stage {
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 600;
+}
+
+.z-loading-stage.is-failed {
+  color: var(--z-danger);
+}
+
+.z-loading-stage small {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+/* The five facts as a spec strip: no dividers, no pills. */
 .z-loading-facts {
   display: flex;
-  margin-top: 36px;
-  border-top: 1px solid #4a4d5c;
-  border-bottom: 1px solid #4a4d5c;
-  padding: 24px 0;
+  flex-wrap: wrap;
 }
+
 .z-loading-facts > div {
-  width: 20%;
-  padding-right: 20px;
+  margin-right: 44px;
 }
+
 .z-loading-facts small {
   display: block;
-  font-size: 20px;
-  color: #b8bac8;
-  margin-bottom: 10px;
+  font-size: 15px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.45);
 }
+
 .z-loading-facts strong {
-  font-size: 30px;
-}
-.z-loading-escape {
-  height: 86px;
-  display: flex;
-  align-items: center;
-}
-.z-loading-status {
-  display: flex;
-  gap: 22px;
-  align-items: center;
-  font-size: 28px;
-  min-height: 40px;
-}
-.z-loading-status > span:last-child:not(:first-child) {
-  margin-left: 12px;
-}
-.z-loading-spinner {
-  width: 24px;
-  height: 24px;
-  border: 3px solid #43485d;
-  border-top-color: #c4ccff;
-  border-radius: 50%;
-  animation: z-loading-spin 1s linear infinite;
-}
-.z-loading-failure {
-  white-space: pre-line;
-}
-.z-release-name {
   display: block;
-  color: #8d90a1;
-  font-size: 18px;
-  overflow: hidden;
+  margin-top: 3px;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.92);
+}
+
+.z-loading-facts strong.is-unknown {
+  color: rgb(255 255 255 / 0.35);
+}
+
+.z-loading-provider {
+  font-size: 20px;
+  line-height: 28px;
+  color: rgb(255 255 255 / 0.82);
+}
+
+/* Always present, always this height: the button arriving changes one cell, not the layout. */
+.z-loading-escape {
+  display: flex;
+  align-items: center;
+  height: 56px;
+}
+
+.z-release-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 17px;
+  color: rgb(255 255 255 / 0.45);
   white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
 }
-@keyframes z-loading-spin {
+
+.z-loading-escape .z-quiet-button {
+  margin-left: 24px;
+  color: var(--z-accent);
+}
+
+/* The one indeterminate treatment: a window sweeping a thin track. Transform only. */
+.z-progress-line {
+  position: relative;
+  height: 3px;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.14);
+  overflow: hidden;
+}
+
+.z-progress-line span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 25%;
+  background: linear-gradient(90deg, transparent, var(--z-accent), transparent);
+  animation: z-progress-sweep 1.2s linear infinite;
+}
+
+.z-progress-line.is-stopped span {
+  display: none;
+}
+
+@keyframes z-progress-sweep {
+  from {
+    transform: translateX(-100%);
+  }
   to {
-    transform: rotate(360deg);
+    transform: translateX(400%);
   }
 }
 
-/* Keep the worst case (six resolutions, four bands) inside 5% TV overscan. */
-.z-quality-figures {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-}
-.z-quality-figures > span {
-  overflow: visible;
-}
-.z-quality-figures small {
-  display: block;
-  font-size: 13px;
-  margin-bottom: 2px;
-}
-/* Standalone TV arrival. No blur, scrolling or animated focus shadows. */
+/* --- First-launch setup -------------------------------------------------------------------- */
+
 .z-setup-screen {
-  box-sizing: border-box;
-  padding: 72px 96px;
-  max-width: 1800px;
-  margin: 0 auto;
-  color: var(--text-primary, #fff);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 56px 96px;
+  background: var(--bg-color);
 }
+
+.z-setup-panel {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
 .z-setup-logo {
-  width: 240px;
-  height: 64px;
+  width: 180px;
+  height: 48px;
   object-fit: contain;
   object-position: left center;
 }
-.z-setup-screen h1 {
-  font-size: 44px;
-  margin: 24px 0;
+
+.z-setup-panel h1 {
+  margin: 28px 0 0;
+  font-size: 40px;
+  line-height: 50px;
+  font-weight: 600;
 }
-.z-setup-screen p {
-  font-size: 25px;
-  line-height: 1.45;
-  margin: 20px 0;
+
+.z-setup-panel p {
+  margin: 10px 0 0;
+  font-size: 22px;
+  line-height: 32px;
+  color: var(--z-text-secondary);
 }
+
+.z-setup-panel .z-setup-notice {
+  color: var(--z-accent);
+}
+
+.z-setup-choices {
+  margin-top: 28px;
+}
+
+/* `NuvioChoiceCard`: radio, title, tagline, description, and why it is greyed when it is. */
 .z-setup-card {
-  display: block;
-  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
   width: 100%;
-  padding: 24px 28px;
-  margin: 16px 0;
-  border: 3px solid #555;
-  border-radius: 14px;
-  background: #20232a;
+  margin-top: 14px;
+  padding: 20px 26px;
+  border: 2px solid var(--z-hairline);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 0.04);
   color: inherit;
+  font: inherit;
   text-align: left;
 }
+
+.z-setup-card[data-selected="true"] {
+  border-color: rgb(var(--z-accent-rgb) / 0.6);
+  background: rgb(var(--z-accent-rgb) / 0.1);
+}
+
+.z-setup-card.focused {
+  border-color: var(--z-focus);
+  background: rgb(255 255 255 / 0.12);
+}
+
+.z-setup-card[aria-disabled="true"] .z-setup-card-copy,
+.z-setup-card[aria-disabled="true"] .z-setup-radio {
+  opacity: 0.55;
+}
+
+.z-setup-radio {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 3px 22px 0 0;
+  border: 3px solid var(--z-text-muted);
+  border-radius: 50%;
+}
+
+.z-setup-card[data-selected="true"] .z-setup-radio {
+  border: 9px solid var(--z-accent);
+  background: var(--z-on-accent);
+}
+
+.z-setup-card-copy {
+  flex: 1;
+  min-width: 0;
+}
+
 .z-setup-card strong {
   display: block;
-  font-size: 30px;
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 600;
 }
-.z-setup-card span {
+
+.z-setup-tagline {
   display: block;
-  margin-top: 16px;
-  font-size: 25px;
-  line-height: 1.4;
+  margin-top: 4px;
+  font-size: 22px;
+  line-height: 30px;
+  font-weight: 500;
+  color: rgb(255 255 255 / 0.86);
 }
-.z-setup-card[data-selected="true"] {
-  background: #303b50;
-  border-color: #99baff;
+
+.z-setup-description {
+  display: block;
+  margin-top: 4px;
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--z-text-secondary);
 }
-.z-setup-card[aria-disabled="true"] {
-  color: #a0a3aa;
-  background: #1b1d22;
+
+.z-setup-note {
+  display: block;
+  margin-top: 6px;
+  font-size: 19px;
+  line-height: 26px;
+  font-weight: 500;
+  color: var(--z-danger);
 }
-.z-setup-card.focused {
-  border-color: #fff;
+
+.z-setup-panel .z-setup-hint {
+  margin-top: 20px;
+  font-size: 19px;
+  line-height: 28px;
+  color: var(--z-text-muted);
 }
-.z-setup-modes {
+
+.z-setup-footer {
   display: flex;
-  margin: 24px -12px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 32px;
 }
-.z-setup-modes .z-setup-card {
-  width: calc(33.333% - 24px);
-  min-height: 260px;
-  margin: 12px;
-}
-.z-setup-screen .z-setup-hint {
-  color: #c2c6cf;
+
+.z-setup-footer .z-quiet-button {
+  margin-right: 12px;
 }

@@ -1,17 +1,52 @@
 # NuvioZWeb Status
 
-Last updated: 2026-10-25
+Last updated: 2026-10-26
 
 |                      |                                                                                                                                                                                                                                                                  |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                       |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                      |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                  |
-| Debug counter        | `DEBUG_BUILD=9`; [debug-v1.2.9-z1.9](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.9) published (WGT + IPK).                                                                                                                                 |
+| Debug counter        | `DEBUG_BUILD=10` (Z screen restyle); debug 9 was the last published before it.                                                                                                                                                                                   |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-3.3 implemented. Remaining playback work includes Instant / measured connection, P12 transition coordination and P16 source probing.                                                                   |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                               |
 | Verified             | `npm run test:z` **417/417**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and both packages pass; Q60B playback/menu/source-panel and first-launch checks below |
 | **Not** verified     | Physical failover and early-Tizen/webOS behavior remain unverified. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset.   |
+
+## Z playback screens restyled from the Kotlin (2026-10-26)
+
+Steps 3.2 and 3.3 gave the three Z-only screens a look of their own (hardcoded blue-grey palette,
+outline focus, a stretched hero), which the maintainer rejected. They have no upstream counterpart,
+so Stage 4's "wait" never applied to them: they now take their look from the screens they port,
+and their colours from the TV theme's variables, so every accent theme reaches them.
+
+- **Quality sheet** (`js/z/playback/qualitySheet.js`): the wide branch of `PlaybackQualitySheet.kt` -
+  a dialog surface over the title's artwork (one background layer with a flat scrim), a Best
+  available strip with size and needs at the right, one column per resolution, outlined chips that
+  shed rather than clip, and a quiet "Choose source manually". Loading with nothing to show draws a
+  static skeleton on the real grid's footprint. Logic, ids and D-pad movement are unchanged.
+- **Loading screen** (`playbackPresentation.js`): `PlaybackLoadingScreen.kt` - the player's scrim,
+  the logo (or title) on the optical centre, and a bottom band of stage line (red with the reason
+  on a failure), the five facts as a spec strip, provider, a fixed-height release-name/escape row
+  and a thin sweeping progress line in place of the spinner. **Bug fixed:** the host compared new
+  markup with `host.innerHTML`, which the browser re-serializes, so it rebuilt its whole DOM every
+  250 ms tick; it now compares with the last markup written.
+- **First-launch setup** (`playbackSetupScreen.js`): `NuvioChoiceCard`s in one column (radio, name,
+  tagline, sentence, red "not available" note), a filled Continue, and the import step's "Set up
+  separately" filled only when there is nothing to import. Title now mobile's: "How should Nuvio
+  pick sources?" (`z_setup_mode_title`).
+- **Stage 3 rules kept:** no blur, no box-shadow, no `will-change`, no `inset` (Chromium 85), and
+  focus is a border colour plus a background step, never an outline (an outline ignores
+  border-radius on Chromium 85).
+- **Render harness:** `node z-render/render.mjs <label> [scene ...]` draws the screens at 1920x1080
+  from the real modules in headless Edge (scenes listed in `z-render/scenes.js`). It is how these
+  were reviewed; the maintainer approved the renders.
+- **Checks:** `npm run test:z` 417/417 (the lifecycle stub gained `cssImage`), lint, format, build.
+  **Browser-rendered only so far**; the TV pass is below once it happens.
+
+**Open question for the maintainer:** the TV sheet lets a quality be picked while sources are still
+arriving (step 3.2's behaviour); mobile and desktop show only the skeleton until the figures settle.
+Left as it is until decided.
 
 ## Stage 2, step 3.3: first-launch selector and cross-family import (2026-10-25)
 

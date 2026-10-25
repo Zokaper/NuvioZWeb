@@ -111,6 +111,7 @@ export function withZStreamPlayback(vanilla) {
         this.zFocusId = options[0]?.id || "manual";
       this.container.innerHTML = renderQualitySheet(options, this.zContext, {
         title: this.params?.itemTitle || this.params?.playerTitle,
+        backdrop: this.params?.backdrop || this.params?.background,
         focusId: this.zFocusId,
         loading: !this.streamSearchCompleted,
         busy: Boolean(this.zPendingQuality),

@@ -3395,7 +3395,7 @@
     <string name="playback_quality_limit_auto_short">Auto</string>
     <string name="playback_quality_limit_mbps">%1$d Mb/s</string>
     <string name="playback_mode_escape_hatch">In every mode, long-press an episode to pick the source yourself for one play.</string>
-    <string name="z_setup_mode_title">Choose how Play works</string>
+    <string name="z_setup_mode_title">How should Nuvio pick sources?</string>
     <string name="z_setup_import_title">Your playback preferences</string>
     <string name="z_setup_import_detail">Bring compatible playback and language preferences from another device, or set up this TV separately. Picture, quality limits and hardware settings stay on this TV.</string>
     <string name="z_setup_checking">Checking for saved preferences…</string>
