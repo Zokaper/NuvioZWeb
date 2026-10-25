@@ -61,6 +61,7 @@ export function createStreamScreenMethods10() {
 
       if (loadToken !== this.loadToken || Router.getCurrent() !== "stream" || profileId !== activeStreamLinkProfile()) return;
       Router.navigate("player", {
+        zAutomaticPlayback: this.zAutomaticPlayback || null,
         streamUrl: selected.url || selected.externalUrl || null,
         itemId: this.params?.itemId || null,
         itemType: itemType || "movie",

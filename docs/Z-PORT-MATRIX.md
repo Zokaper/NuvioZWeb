@@ -7,12 +7,15 @@ gets re-derived as missing work if nobody writes it down.
 Canonical feature ledger: `nuvio-z/Docs/Z-FEATURES.md`. The doctrine: `nuvio-z/Docs/UPSTREAM.md`.
 The live phase ledger for the port in progress: `PLAYBACK_MODES_WEB_PLAN.md`.
 
-Last updated 2026-08-24.
+Last updated 2026-10-25.
 
 > **Phase 10 restart (2026-10-25).** The product decisions below (what the TV takes and what it does
 > not) still stand. The **implementation state does not**: every "ported" or "landed" row describes
-> the archived 0.3.40 line (tag `z-0.3.40-archive`). On the 1.2.9 trunk nothing is ported yet;
-> Stage 2 of `Nuvio Z/PLAN-phase-10-tv-web-port.md` re-ports it from today's Kotlin.
+> the archived 0.3.40 line (tag `z-0.3.40-archive`). On the 1.2.9 trunk, Stage 2 steps 1-3.2 now wire the pure rules, settings/sync, quality columns,
+> loading host, three-source chain and startup watchdog. These are browser-verified; see `STATUS.md`
+> for the hardware boundary. Instant, first-launch import, source probing and the richer coordinated
+> next-episode transition remain unfinished. The older per-row state below remains archival unless
+> explicitly covered by that handoff.
 
 ## Why the answer differs from mobile's
 

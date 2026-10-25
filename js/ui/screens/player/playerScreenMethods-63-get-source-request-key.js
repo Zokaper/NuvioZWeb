@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import * as internals from "./playerScreenContext.js";
+import { sourceWindow } from "../../../core/z/playback/sourceWindow.js";
 
 export function createPlayerScreenMethods63() {
   const {
@@ -182,6 +183,7 @@ export function createPlayerScreenMethods63() {
       const showAddonLogo = badgeSettings.showAddonLogo === true;
       const badgePlacement = resolvePlayerSourceBadgePlacement(badgeSettings);
       this.ensureSourcesFocus(filters, filtered);
+      const window = sourceWindow(filtered, this.sourcesFocus);
 
       const nextMarkup = `
           <div class="player-sources-header">
@@ -220,8 +222,9 @@ export function createPlayerScreenMethods63() {
             ${
               !this.sourcesLoading && !filtered.length
                 ? `<div class="player-sources-empty">${escapeHtml(t("sources_no_streams", {}, "No streams found"))}</div>`
-                : filtered
-                    .map((stream, index) => {
+                : window.items
+                    .map((stream, offset) => {
+                      const index = window.start + offset;
                       const focused = this.sourcesFocus.zone === "list" && this.sourcesFocus.index === index;
                       const isCurrent = this.streamCandidates[this.currentStreamIndex]?.url === stream.url;
                       const badges = renderPlayerSourceBadges(stream, badgeSettings);

@@ -2,16 +2,16 @@
 
 Last updated: 2026-10-25
 
-|                      |                                                                                                                                                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                        |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                       |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                   |
-| Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                                                         |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-2 done; **step 3.1 (settings rows) done**; next is 3.2, the source screen (Streamlined, overlay, fallback, the source-list freeze)                      |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                |
-| Verified             | `npm run test:z` **333/333**; `lint:runtime` and `format:check` clean; in the browser (PC only): the settings rows, their dialogs, and a push + pull of the playback keys on the account                          |
-| **Not** verified     | Anything past sign-in. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
+|                      |                                                                                                                                                                                                                                                                |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                     |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                    |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                |
+| Debug counter        | `DEBUG_BUILD=8` in `debug-version.properties` (continues the 0.3.40 line's counter); step 3.2 debug publication pending                                                                                                                                        |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-2, 3.1 and **3.2 (source screen + player)** implemented; next is 3.3, first-launch selector + cross-family import                                                                                    |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                             |
+| Verified             | `npm run test:z` **394/394**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and Tizen package pass; Q60B playback/menu/source-panel checks below                |
+| **Not** verified     | Physical failover and early-Tizen/webOS behavior remain unverified. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
 
 ## Phase 10 restart (2026-10-25)
 
@@ -88,8 +88,51 @@ upstream's TV row styling (Stage 4 restyles). The logic is Z-owned (`js/z/settin
   `playback_mode` into the `tv` blob; Balanced added `playback_quality_ceiling_mbps = 20`; back to Classic
   rewrote the mode. Wiping the local mode and reloading pulled `STREAMLINED` back. The account is left on
   **Classic + Balanced**.
-- **Nothing reads the mode yet.** Streamlined greys upstream's auto-play but the stream screen still behaves
-  as Classic until step 3.2 wires the router. Not on the TV yet.
+- **At this checkpoint nothing read the mode.** Step 3.2 below now wires the route; step 3.1 was browser-only.
+
+### Stage 2, step 3.2: source screen and player (2026-10-25)
+
+- Continued Claude's six uncommitted pure-module/test files. The progress vocabulary, five-slot facts,
+  quality-cell figures and capped automatic chain are now integrated through Z-owned screen controllers
+  in `js/z/playback/`. Upstream gets screen decorators, one launch parameter and a bounded source-window seam.
+- **Classic stays on vanilla's list.** Explicit manual launches bypass remembered links and all automatic
+  selection. Streamlined shows catalogue-derived Best available and up to six resolution columns / four
+  absolute bands. Every cell is D-pad reachable, including the manual exit, and the largest catalogue fits
+  the 1080p safe area. Existing hold menus expose Play manually; the mobile settings hint is now shown.
+- Selection waits for the current source search to settle, with a 20 s backstop; the separate player
+  handoff also has its own 20 s budget. A disappeared choice, no safe source, timeout or manual escape
+  uncovers the list with a named reason. Uncached results ask first. Only explicit Start caching consent
+  can bypass vanilla's local cache-only resolver checks, and only for the selected source.
+- **One DOM loading host spans handoff and retries.** Real steps, five honest facts, failed-source reason,
+  attempt count, manual escape after a failure / 5 s. The player owns the three-source chain because it
+  owns resolution on TV. Duplicate and stale errors do not spend another attempt; resolver mount tokens
+  invalidate abandoned work. Failure after a frame retains playback position; explicit source changes
+  retire the automatic chain. An actual automatic-player exit returns to details; Back first closes menus / hides controls as in vanilla.
+- Kotlin's progress watchdog replaces vanilla's fixed startup timeout for automatic picks: 20 s dead,
+  35 s with evidence of life, 12 s stalled, 60 s ceiling. Classic retains vanilla's startup policy.
+- Streamlined's next-episode entry routes through the quality sheet. The richer P12 seamless background
+  transition/countdown coordination and P16 probe/duration plausibility remain separate port work.
+- **Source-list freeze:** render at most 13 cards around absolute focus; cache source ordering by catalogue
+  identity. The full list remains available to filters and activation; navigating past a window re-centres it.
+- **Verified on PC:** 394 tests (47 continued pure cases + 14 new window/lifecycle cases), build and Tizen
+  packaging. Browser: Classic/manual routing, all quality controls via arrows/OK, safe-area geometry,
+  retry preserving the same DOM host, spent-chain/manual exits, uncached decline, first frame on a local
+  video, and Back to details. An actual dead media URL (no injected error callback) hit the 20 s watchdog
+  and fell back to the working video in **20.1 s**. A 4,000-source panel rendered 13 cards in **31-63 ms**
+  on this PC, with index 3999 reachable. Browser tests used in-memory repository/settings overrides;
+  browser checks did not change account playback settings; hardware checks temporarily selected Streamlined. Temporary inspection exports are removed from the app.
+- **Not measured:** connection throughput or physical display resolution. No guessed figure is shown;
+  displayMaxHeight remains null. No metered/download/party path exists on TV. Loading entrance/exit motion,
+  Instant, and cross-family first-launch import are not claimed by this step.
+- **Hardware (Q60B / Tizen 6.5):** the configured local WGT installed and launched. Watched the mode
+  dialog and hold-menu hint, Streamlined's live MobLand quality grid, remote focus movement, a selected
+  720p release resuming at the existing position with subtitles, and Vive L'Amour's real uncached prompt.
+  An initial Back handler skipped the audio-menu dismissal; corrected by decorating only the actual
+  exit method, with a new regression test. Reinstalled the corrected WGT: Back closed the audio menu without leaving playback; Sources opened and D-pad navigation crossed the initial 13-row window while video continued. No TV frame-time claim is made.
+  Physical dead-source failover, Tizen 4/8+, webOS and connection measurements remain unverified.
+- Final checks: **394/394**, `lint:runtime`, `format:check`, build and Tizen packaging pass. The default
+  GitHub debug workflow has no `NUVIO_LOCAL_PROPERTIES` secret; its unconfigured packages lack account
+  sign-in/sync and TMDB. The locally installed WGT uses the ignored local configuration.
 
 ### Working in the browser (from 2026-10-25)
 

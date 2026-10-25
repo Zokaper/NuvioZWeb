@@ -1,4 +1,5 @@
 import { StreamInfoMethods } from "./streamInfoOverlay.js";
+import { withZPlayerPlayback } from "../../../z/playback/playerPlayback.js";
 import { createPlayerScreenMethods01 } from "./playerScreenMethods-01-mount.js";
 import { createPlayerScreenMethods02 } from "./playerScreenMethods-02-get-post-play-state.js";
 import { createPlayerScreenMethods03 } from "./playerScreenMethods-03-render-post-play-manual-dialog.js";
@@ -75,7 +76,7 @@ import { createPlayerScreenMethods73 } from "./playerScreenMethods-73-cleanup.js
 
 import { createPlayerPartyMethods } from "./playerParty.js";
 export * from "./playerScreenContext.js";
-export const PlayerScreen = {
+export const PlayerScreen = withZPlayerPlayback({
   ...StreamInfoMethods,
   ...createPlayerScreenMethods01(),
   ...createPlayerScreenMethods02(),
@@ -151,4 +152,4 @@ export const PlayerScreen = {
   ...createPlayerScreenMethods72(),
   ...createPlayerScreenMethods73(),
   ...createPlayerPartyMethods()
-};
+});

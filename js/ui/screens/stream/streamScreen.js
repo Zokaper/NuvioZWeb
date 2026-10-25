@@ -1,4 +1,5 @@
 import { createStreamScreenPartyMethods } from "./streamScreenParty.js";
+import { withZStreamPlayback } from "../../../z/playback/streamPlayback.js";
 import { Router } from "../../navigation/routerState.js";
 import { ScreenUtils } from "../../navigation/screen.js";
 import { streamRepository } from "../../../data/repository/streamRepository.js";
@@ -149,7 +150,7 @@ export * from "./streamScreenHelpers-01-stream-badge-limit.js";
 export * from "./streamScreenHelpers-02-flatten-streams.js";
 export * from "./streamScreenHelpers-03-render-image-badge-chip.js";
 
-export const StreamScreen = {
+export const StreamScreen = withZStreamPlayback({
   ...createStreamScreenMethods01(),
   ...createStreamScreenMethods02(),
   ...createStreamScreenMethods03(),
@@ -162,4 +163,4 @@ export const StreamScreen = {
   ...createStreamScreenMethods10(),
   ...createStreamScreenMethods11(),
   ...createStreamScreenPartyMethods()
-};
+});

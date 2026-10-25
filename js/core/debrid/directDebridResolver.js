@@ -425,7 +425,7 @@ export const DirectDebridResolver = {
     return cached ? withResolvedUrl(stream, cached) : null;
   },
 
-  async resolve(stream = {}, { season = null, episode = null } = {}) {
+  async resolve(stream = {}, { season = null, episode = null, allowUncached = false } = {}) {
     if (getStreamUrl(stream)) {
       return { status: "success", stream };
     }
@@ -446,11 +446,16 @@ export const DirectDebridResolver = {
     if (isDirectDebrid(stream) && activeProvider?.id && provider.id !== activeProvider.id) {
       return failure("stale");
     }
-    if (needsLocalDebridResolve(stream) && stream.debridCacheStatus?.state === "NOT_CACHED") {
+    if (
+      !allowUncached &&
+      needsLocalDebridResolve(stream) &&
+      stream.debridCacheStatus?.state === "NOT_CACHED"
+    ) {
       return failure("not_cached");
     }
     if (
       needsLocalDebridResolve(stream) &&
+      !allowUncached &&
       stream.infoHash &&
       stream.debridCacheStatus?.state !== "CACHED" &&
       provider.capabilities.includes(DEBRID_CAPABILITIES.LOCAL_TORRENT_CACHE_CHECK)

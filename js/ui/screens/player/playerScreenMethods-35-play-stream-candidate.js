@@ -59,6 +59,10 @@ export function createPlayerScreenMethods35() {
       }
       if (!targetUrl) {
         const resolveContext = {
+          allowUncached: Boolean(
+            this.params?.zAutomaticPlayback?.allowUncachedStreamId &&
+            this.params.zAutomaticPlayback.allowUncachedStreamId === streamCandidate.id
+          ),
           season: this.params?.season == null ? null : Number(this.params.season),
           episode: this.params?.episode == null ? null : Number(this.params.episode)
         };

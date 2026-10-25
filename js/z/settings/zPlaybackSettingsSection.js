@@ -225,7 +225,7 @@ export function registerZPlaybackActions() {
   choose({
     focusKey: "z:playback:mode",
     title: t("settings_playback_mode"),
-    message: t("settings_playback_mode_description"),
+    message: `${t("settings_playback_mode_description")}\n${t("playback_mode_escape_hatch")}`,
     field: "playbackMode",
     options: PLAYBACK_MODES.map((mode) => {
       const copy = MODE_COPY[mode];
