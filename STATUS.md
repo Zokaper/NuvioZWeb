@@ -2,16 +2,16 @@
 
 Last updated: 2026-10-25
 
-|                      |                                                                                                                                                                                 |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                      |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                     |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                 |
-| Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                       |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 (the new trunk): tooling + identity committed; next is the first debug build on the TV                                         |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                              |
-| Verified             | `npm run test:z` 6/6; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, the WGT's `config.xml` carries the Z ids (PC only) |
-| **Not** verified     | Anything past launch. The first Nuvio Z build is installed on the Q60B beside vanilla and opens to sign-in, but it has no keys (below), so sign-in, TMDB and sync are untested. |
+|                      |                                                                                                                                                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                        |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                       |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                   |
+| Debug counter        | `DEBUG_BUILD=7` in `debug-version.properties` (continues the 0.3.40 line's counter); nothing published from this line yet                                                                                         |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 1 (the new trunk): tooling + identity committed; next is the first debug build on the TV                                                                           |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                |
+| Verified             | `npm run test:z` 6/6; upstream parity 20/21 (same as vanilla); `lint:runtime` and `format:check` clean; both packages build, the WGT's `config.xml` carries the Z ids (PC only)                                   |
+| **Not** verified     | Anything past sign-in. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset. |
 
 ## Phase 10 restart (2026-10-25)
 
@@ -58,7 +58,10 @@ upstream's package id; deleting it on the TV fixed it. That is why this line has
   `%APPDATA%/Nuvio TV Installer/samsung-certificates`), using the same vendored `tizen-js` signer
   (GPL-3), then `sdb push` + `vd_appinstall`. First run 2026-10-25: `install completed`, launched, and
   `vd_applist` shows `NuvioZTV01` "Nuvio Z" beside vanilla's `NuvioTV001` - the side-by-side install works.
-- **No keys in any build yet.** There is no `local.properties` here and the fork has **no Actions
+- **Local builds now have the account keys** (`local.properties`: the official Nuvio account from
+  `nuvio-z/local.properties` plus vanilla's public service URLs); QR sign-in works on the TV. Upstream
+  bug seen: under the code the QR panel shows the raw key `auth.qr.expires`.
+- **Before that, no keys in any build.** There is no `local.properties` here and the fork has **no Actions
   secrets**, so builds fall back to `local.example.properties`: the QR sign-in renders blank, and TMDB,
   account sync and Trakt are off. Addons still work via _Continue without account_. Z's sign-in must go
   to Z's backend (Stage 5), never `api.nuvio.tv`; a TMDB key is the maintainer's to provide.
