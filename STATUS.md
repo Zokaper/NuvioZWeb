@@ -7,11 +7,27 @@ Last updated: 2026-10-26
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=12`; [debug-v1.2.9-z1.12](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.12) published (WGT + IPK). The configured local Samsung WGT is signed and ready; not installed.                                                                 |
+| Debug counter        | `DEBUG_BUILD=12`; [debug-v1.2.9-z1.12](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.12) published (WGT + IPK). Configured local signed WGT installed and launched on the Q60B, 2026-10-26.                                                          |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **457/457**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
 | **Not** verified     | Debug 10 restyle and this playback completion chunk have not been watched on a TV. Maintainer explicitly requested spaced, combined TV test chunks on 2026-10-26. Q60B checks below describe earlier builds; physical failover, early Tizen and webOS remain open.       |
+
+## Debug 12 installed on the Q60B (2026-10-26)
+
+At the maintainer's request, installed the configured signed debug 12 WGT and launched
+`NuvioZTV01.NuvioZ`. `vd_appinstall` returned **install completed**, `was_execute` returned
+**launched**, and `vd_applist` confirms the Z app. No settings were changed and no playback or
+physical focus acceptance is claimed; the app is left open for the maintainer's test chunk.
+
+The Q60B's address changed from `192.168.100.120` to **`192.168.100.119`**. SSDP discovery and
+the matching model/device UUID confirmed the same set before installing. The maintainer powered
+it on after the old address did not answer; this session did not prove remote wake. Current
+address and wake MAC are saved **locally only** in ignored `.cache/q60b-network.json` for future
+Wake-on-LAN attempts. Use `TV_IP=192.168.100.119` for the remote-key helper. The Samsung
+certificate cache is still named for the old address (`192.168.100.120.json`), so changing only
+`TV_IP` in `tvinstall.cjs` would miss it; use the already signed WGT with direct `sdb` as done here,
+or adapt the certificate lookup. Do not copy/print the certificate contents into tracked files.
 
 ## Visible focus on filled buttons (2026-10-26, debug 12)
 
@@ -22,7 +38,8 @@ detail Play, profile primary actions, post-play primary actions and selected det
 The ring only appears on remote focus, changes no layout, and uses a border pseudo-element for
 older Tizen engines. No upstream files or playback logic changed. Browser renders/checks cover
 focused/unfocused setup and import plus the shared button classes; build and formatting pass.
-This remains part of the pending combined TV test chunk; no TV install is claimed.
+Installed and launched on the Q60B later in this session, as recorded above. Focus/playback
+acceptance remains part of the pending combined TV test chunk.
 
 **Published:** [debug 12](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.12),
 [run 40341145776](https://github.com/Zokaper/NuvioZWeb/actions/runs/40341145776), WGT + IPK.
