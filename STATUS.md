@@ -7,7 +7,7 @@ Last updated: 2026-10-26
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=12`; visible focus ring fix prepared for the debug workflow. The configured local Samsung WGT is rebuilt and signed; no TV install.                                                                                                                         |
+| Debug counter        | `DEBUG_BUILD=12`; [debug-v1.2.9-z1.12](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.12) published (WGT + IPK). The configured local Samsung WGT is signed and ready; not installed.                                                                 |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **457/457**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
@@ -23,6 +23,10 @@ The ring only appears on remote focus, changes no layout, and uses a border pseu
 older Tizen engines. No upstream files or playback logic changed. Browser renders/checks cover
 focused/unfocused setup and import plus the shared button classes; build and formatting pass.
 This remains part of the pending combined TV test chunk; no TV install is claimed.
+
+**Published:** [debug 12](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.12),
+[run 40341145776](https://github.com/Zokaper/NuvioZWeb/actions/runs/40341145776), WGT + IPK.
+The configured local signed WGT includes this focus fix.
 
 ## Stage 2 playback completion chunk (2026-10-26, debug 11)
 
