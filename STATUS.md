@@ -7,11 +7,22 @@ Last updated: 2026-10-26
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=11`; [debug-v1.2.9-z1.11](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.11) published (WGT + IPK). Public packages are unconfigured; the configured local WGT is signed and ready for the next test chunk.                              |
+| Debug counter        | `DEBUG_BUILD=12`; visible focus ring fix prepared for the debug workflow. The configured local Samsung WGT is rebuilt and signed; no TV install.                                                                                                                         |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **457/457**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
 | **Not** verified     | Debug 10 restyle and this playback completion chunk have not been watched on a TV. Maintainer explicitly requested spaced, combined TV test chunks on 2026-10-26. Q60B checks below describe earlier builds; physical failover, early Tizen and webOS remain open.       |
+
+## Visible focus on filled buttons (2026-10-26, debug 12)
+
+Maintainer's screenshot showed Continue focused with no visible indication: both its fill and
+focus border were white. A shared rule in `css/z.css` now draws a 3px white rounded ring outside
+the button, separated from the fill by a gap. It covers Z setup/import/caching primary buttons,
+detail Play, profile primary actions, post-play primary actions and selected detail icon buttons.
+The ring only appears on remote focus, changes no layout, and uses a border pseudo-element for
+older Tizen engines. No upstream files or playback logic changed. Browser renders/checks cover
+focused/unfocused setup and import plus the shared button classes; build and formatting pass.
+This remains part of the pending combined TV test chunk; no TV install is claimed.
 
 ## Stage 2 playback completion chunk (2026-10-26, debug 11)
 
@@ -69,7 +80,7 @@ The configured local `NuvioZTV01_1.2.9-signed.wgt` is rebuilt and signed for the
 production bundle was checked to exclude the browser verification harness. **Not installed.**
 The checked-in source and both repositories' handoffs are committed and pushed.
 
-**Next maintainer test chunk:** install the configured debug 11 WGT, then try Classic, Streamlined
+**Next maintainer test chunk:** install the configured debug 12 WGT, then try Classic, Streamlined
 and Instant on the same title; check the quality/loading/setup restyle, a bad-source fallback,
 manual Change source and next-episode choice/countdown/Back. Retest speed once. Keep early-Tizen,
 webOS and the downstairs Tizen 8+ set as separate later checkpoints. The package is prepared here;

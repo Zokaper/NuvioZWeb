@@ -117,6 +117,35 @@
   background: var(--z-focus);
 }
 
+/* A white focus border disappears into a white primary action. Draw a separate ring with
+   a visible gap, shared by setup/import/caching, detail, profile and post-play buttons.
+   A rounded pseudo-element also works on old Tizen, whose CSS outline stays square. */
+.z-primary-button,
+.series-primary-btn,
+.profile-overlay-button-primary,
+.player-post-play-primary,
+.series-circle-btn.is-library-selected,
+.series-circle-btn.is-selected {
+  position: relative;
+}
+
+.z-primary-button.focused::after,
+.series-primary-btn.focused::after,
+.profile-overlay-button-primary.focused::after,
+.player-post-play-primary.focused::after,
+.series-circle-btn.is-library-selected.focused::after,
+.series-circle-btn.is-selected.focused::after {
+  content: "";
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  bottom: -9px;
+  left: -9px;
+  border: 3px solid #fff;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 /* --- Streamlined's quality sheet ----------------------------------------------------------- */
 
 /* The stream screen's artwork under a flat scrim (one layer with the image), so the sheet and
