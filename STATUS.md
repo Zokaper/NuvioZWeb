@@ -11,7 +11,40 @@ Last updated: 2026-10-26
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **457/457**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
-| **Not** verified     | Debug 10 restyle and this playback completion chunk have not been watched on a TV. Maintainer explicitly requested spaced, combined TV test chunks on 2026-10-26. Q60B checks below describe earlier builds; physical failover, early Tizen and webOS remain open.       |
+| **Not** verified     | First maintainer test of installed debug 12 reported loading stutter and player issues (below). Full mode/failover/next-episode acceptance is not established; early Tizen and webOS remain open. Keep spaced, combined TV test chunks.                                  |
+
+## First maintainer test of debug 12 (2026-10-26)
+
+The maintainer has now tested the latest installed TV build. This supersedes the earlier
+"not watched" note for the loading screen, but is not a blanket pass for the playback chunk:
+the report does not name which modes, failover or next-episode paths were exercised.
+
+- **Loading screen stutters hard on the TV.** Prioritize it in Stage 3's performance chunk.
+  Profile source parsing/ranking during discovery and loading-host updates on the Q60B before
+  calling a cause or fix confirmed. `zOptions()` extracts facts and builds ranked options repeatedly;
+  changed loading markup still replaces the title, fact band and animated progress node together.
+  The earlier unchanged-markup cache is already in debug 12 and did not eliminate this report.
+- **Stage wording is a question, not a requested redesign.** Maintainer sees Finding sources ->
+  Choosing best source -> populated facts on TV, versus Starting playback before facts appear on
+  desktop. TV explicitly publishes discovery/selection stages; Kotlin has the same stage vocabulary
+  but publishes Starting playback on player handoff. Exact paths/timing of the reported desktop
+  run are not established. Facts on TV are supplied when a winner is selected.
+- **TMDB enhancement must default to enabled.** Add to the upcoming settings/defaults work;
+  it currently defaults off in `tmdbSettingsStore.js` (both `DEFAULTS.enabled` and the normalizer).
+  Preserve an explicit saved/synced opt-out when implementing the new default. No setting or code
+  was changed in this feedback handoff.
+- **Player review later:** Details can trap the user with no way out, and audio selection has
+  awkward UI. **Ask the maintainer for the exact interaction and desired audio behavior when the
+  player review begins**, before choosing a fix. Do not treat the earlier audio Back fix as proof
+  that these new reports are covered, or label them confirmed vanilla bugs without reproduction.
+- **About / Fusion questions checked against source:** vanilla 1.2.9's update prompt instructs
+  use of Nuvio TV Installer; the button checks releases and shows notes, without installing.
+  Z checks its own stable release line, which excludes the debug prereleases. Desktop-free
+  updating remains Stage 6's unproven loader work. Fusion settings import JSON pattern rules
+  that add image/text badges to matching source cards; they are inherited stream presentation.
+
+This is a documentation-only handoff. No new build, install, physical reproduction by the agent
+or performance fix is claimed. Continue with spaced, combined TV test chunks.
 
 ## Debug 12 installed on the Q60B (2026-10-26)
 

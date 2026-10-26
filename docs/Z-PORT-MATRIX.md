@@ -13,8 +13,10 @@ Last updated 2026-10-26.
 > per-profile first-launch and cross-family import, the persistent loading host and capped failure
 > chain, measured connection/re-test (N1-N3), coordinated next episode (P12) and side probes plus
 > duration plausibility (P16). PC/browser verification is in `STATUS.md`. The maintainer requested
-> one combined playback TV test after these land; debug 10's restyle and debug 11's completion
-> chunk remain physically unverified. **The older per-row states below describe the archived
+> one combined playback TV test after these land. Their first test of installed debug 12 now
+> reports severe loading-screen stutter, TMDB enhancement defaulting off, a Details exit trap
+> and awkward audio selection. These are open findings in `STATUS.md`; the report does not
+> establish acceptance of every mode, failover or next-episode path. **The older per-row states below describe the archived
 > 0.3.40 line** unless covered by the current handoff. Do not resurrect the old phase-by-phase TV
 > gates: the maintainer explicitly replaced those with spaced test chunks on 2026-10-26.
 >
