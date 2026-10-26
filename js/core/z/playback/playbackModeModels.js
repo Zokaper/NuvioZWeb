@@ -43,17 +43,11 @@ export const DEFAULT_PLAYBACK_MODE = PLAYBACK_MODE.CLASSIC;
  * two files described the modes independently, and the machinery that produced it was deleted
  * rather than fixed.
  *
- * ⚠ **Instant is withheld here only until its phase lands** (Phase D in
- * `PLAYBACK_MODES_WEB_PLAN.md`). That is this property doing the job it exists for - a mode whose
- * route paths are not built yet must not be selectable - and it is *not* a repeat of the two
- * withdrawals on mobile. Those were logic defects, and every one of them is already fixed in the
- * Kotlin this port copies from: the windowed sustained rate rather than a mean over the slow-start
- * ramp, the settle-before-deciding gate, `playbackQualityCeilingMbps`, absolute bands, and the
- * capped failure chain with its naming overlay. Flip this to `true` when Phase D lands; do not
- * re-litigate the design.
+ * All three modes are implemented on the 1.2.9 TV line. Existing stored Instant choices become
+ * active without a storage rewrite; first-launch and Settings use this same availability rule.
  */
 export function isSelectable(mode) {
-  return mode !== PLAYBACK_MODE.INSTANT;
+  return PLAYBACK_MODES.includes(mode);
 }
 
 export function playbackModeFromStorage(value) {

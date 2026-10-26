@@ -3410,4 +3410,9 @@
     <string name="z_setup_instant_saved">Your Instant preference is saved. This version uses Streamlined until Instant is available. Continue keeps that preference.</string>
     <string name="z_setup_change_later">Change this anytime in Settings → Playback. Long-press a title or episode and choose Play manually to pick a source for one play.</string>
     <string name="z_setup_continue">Continue</string>
+    <!-- Z playback completion: measured connection, Instant and source probing. -->
+    <string name="playback_quality_connection_unknown">Connection speed unavailable · select to re-test</string>
+    <string name="playback_probe_dead">This source did not return playable media</string>
+    <string name="playback_probe_placeholder">The provider is still preparing this source</string>
+    <string name="playback_instant_now_playing">Playing %1$s · OK to change source</string>
 </resources>

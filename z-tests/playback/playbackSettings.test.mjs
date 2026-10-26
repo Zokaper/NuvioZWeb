@@ -45,10 +45,10 @@ test("an untouched profile stores nothing and reads mobile's defaults", () => {
   });
 });
 
-test("a withheld mode reads as the nearest one but is never rewritten", () => {
+test("an existing Instant preference becomes active without rewriting storage", () => {
   // Instant is withheld on TV until its route lands; the profile's choice is every device's choice.
   const stored = normalizeStoredPlaybackSettings({ playbackMode: "INSTANT" });
-  assert.equal(resolvePlaybackSettings(stored).playbackMode, "STREAMLINED");
+  assert.equal(resolvePlaybackSettings(stored).playbackMode, "INSTANT");
   assert.equal(stored.playbackMode, "INSTANT");
   assert.equal(playbackSettingsPayload(stored).playback_mode, "INSTANT");
 });

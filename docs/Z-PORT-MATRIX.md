@@ -7,17 +7,22 @@ gets re-derived as missing work if nobody writes it down.
 Canonical feature ledger: `nuvio-z/Docs/Z-FEATURES.md`. The doctrine: `nuvio-z/Docs/UPSTREAM.md`.
 The live phase ledger for the port in progress: `PLAYBACK_MODES_WEB_PLAN.md`.
 
-Last updated 2026-10-25.
+Last updated 2026-10-26.
 
-> **Phase 10 restart (2026-10-25).** The product decisions below (what the TV takes and what it does
-> not) still stand. The **implementation state does not**: every "ported" or "landed" row describes
-> the archived 0.3.40 line (tag `z-0.3.40-archive`). On the 1.2.9 trunk, Stage 2 steps 1-3.2 now wire the pure rules, settings/sync, quality columns,
-> loading host, three-source chain and startup watchdog. These are browser-verified; see `STATUS.md`
-> for the hardware boundary. Step 3.3 adds the standalone mode selector and explicit one-time import
-> of compatible playback/language preferences from Mobile/Desktop. Instant remains visible but inert;
-> imported Instant is retained and runs Streamlined until available. Source probing and the richer coordinated
-> next-episode transition remain unfinished. The older per-row state below remains archival unless
-> explicitly covered by that handoff.
+> **Current 1.2.9 line (2026-10-26).** Stage 2 now implements all three modes, settings/sync,
+> per-profile first-launch and cross-family import, the persistent loading host and capped failure
+> chain, measured connection/re-test (N1-N3), coordinated next episode (P12) and side probes plus
+> duration plausibility (P16). PC/browser verification is in `STATUS.md`. The maintainer requested
+> one combined playback TV test after these land; debug 10's restyle and debug 11's completion
+> chunk remain physically unverified. **The older per-row states below describe the archived
+> 0.3.40 line** unless covered by the current handoff. Do not resurrect the old phase-by-phase TV
+> gates: the maintainer explicitly replaced those with spaced test chunks on 2026-10-26.
+>
+> **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
+> Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
+> AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a
+> session-scoped estimate, never a restored guess about the network. Unknown speed stays unknown
+> and Instant uses the existing cheapest-option fallback. Every remaining policy comes from Kotlin.
 
 ## Why the answer differs from mobile's
 

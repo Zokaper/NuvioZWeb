@@ -388,6 +388,44 @@
   padding-top: 12px;
   border-top: 1px solid var(--z-hairline);
 }
+.z-connection-button {
+  margin-right: auto;
+  text-align: left;
+}
+/* Four-band catalogues still fit inside the TV safe area, including the measured footer. */
+.z-quality-dense {
+  padding-top: 24px;
+  padding-bottom: 18px;
+}
+.z-quality-dense .z-quality-hero {
+  padding-top: 14px;
+  padding-bottom: 14px;
+  margin-top: 16px;
+}
+.z-quality-dense .z-quality-columns {
+  margin-top: 16px;
+}
+.z-quality-dense .z-quality-cell {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-top: 8px;
+}
+.z-quality-dense .z-quality-cell-band {
+  font-size: 22px;
+  line-height: 28px;
+}
+.z-quality-dense .z-quality-footer {
+  margin-top: 16px;
+}
+.z-connection-button small {
+  display: block;
+  font-size: 16px;
+  color: var(--z-text-secondary);
+}
+.z-over-connection .z-quality-cell-figures,
+.z-over-connection .z-quality-hero-figure:last-child {
+  color: #e3b76b;
+}
 
 /* --- The loading screen -------------------------------------------------------------------- */
 

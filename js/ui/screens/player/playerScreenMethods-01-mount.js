@@ -131,6 +131,9 @@ export function createPlayerScreenMethods01() {
       if (this.currentStreamIndex < 0) {
         this.currentStreamIndex = 0;
       }
+      // Z: duplicate URLs must not move an automatic chain off its selected source identity.
+      if (params.zAutomaticPlayback && preferredStreamCandidate)
+        this.currentStreamIndex = this.streamCandidates.indexOf(preferredStreamCandidate);
       this.initialFilenameStreamCandidate = this.streamCandidates[this.currentStreamIndex] || null;
       // Remember the stream that actually plays so the stream list can focus it on
       // the next visit. Only persist when the caller provided a real candidate list

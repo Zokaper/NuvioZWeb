@@ -90,8 +90,7 @@ const press = (instance, action) => instance.activate({ dataset: { setupAction: 
 test("confirming an imported Instant preference preserves the stored choice and marks only local completion", async () => {
   const instance = screen({ playbackMode: "INSTANT" });
   instance.showModes();
-  assert.equal(instance.selectedMode, "STREAMLINED");
-  await press(instance, "mode:INSTANT");
+  assert.equal(instance.selectedMode, "INSTANT");
   assert.equal(instance.changedMode, false);
   await press(instance, "continue");
   assert.equal(setupHarness.settings[1].playbackMode, "INSTANT");

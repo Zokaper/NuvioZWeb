@@ -4,6 +4,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { build } from "esbuild";
 import { fileURLToPath } from "node:url";
+import { buildQualityOptions } from "../../js/core/z/playback/playbackQualityOptions.js";
+import {
+  createSelectionContext,
+  createSourceCandidate
+} from "../../js/core/z/playback/playbackSelectionContext.js";
 
 const boundaries = {
   "playerController.js": "export const PlayerController = globalThis.zHarness.controller;",
@@ -12,6 +17,7 @@ const boundaries = {
     "export const ZPlaybackSettingsStore = { get: () => ({ playbackMode: 'STREAMLINED' }) };",
   "playerSettingsStore.js": "export const PlayerSettingsStore = { get: () => ({}) };",
   "tizenCapabilities.js": "export const TizenCapabilities = { isP2pUnsupported: () => false };",
+  "sourceProbe.js": "export const probeSource = (...args) => globalThis.zHarness.probe(...args);",
   "playbackPresentation.js":
     "export const showPlaybackLoading = (state) => { globalThis.zHarness.loading = state; }; export const hidePlaybackLoading = () => { globalThis.zHarness.loading = null; }; export const t = key => key; export const escapeHtml = String; export const formatSize = String; export const cssImage = String;"
 };
@@ -47,6 +53,7 @@ globalThis.zHarness = {
   router: { getCurrent: () => "player" },
   loading: null
 };
+zHarness.probe = async () => ({ type: "FAILED" });
 const { withZPlayerPlayback } = await controllerModule("playerPlayback.js");
 const { withZStreamPlayback } = await controllerModule("streamPlayback.js");
 
@@ -77,6 +84,10 @@ function player() {
     clearStartupError() {},
     playStreamCandidate(candidate, options) {
       calls.push({ id: candidate.id, options });
+    },
+    startPlayerControllerPlayback(url) {
+      this.activePlaybackUrl = url;
+      return Promise.resolve();
     },
     showStartupError() {
       calls.push("vanilla error");
@@ -305,4 +316,114 @@ test("a resolver rejection arriving after route cleanup cannot restart the chain
   const pending = screen.playStreamCandidate({ id: "a" }, { mountToken: 1 });
   reject(new Error("late resolver error"));
   await assert.doesNotReject(pending);
+});
+
+test("Instant waits for connection settlement, uses the affordable quality and launches only once", () => {
+  zHarness.router.getCurrent = () => "stream";
+  const context = createSelectionContext({ runtimeMinutes: 120 });
+  const candidates = [
+    ["4k", "2160p", 40e9],
+    ["1080", "1080p", 4e9],
+    ["720", "720p", 1e9]
+  ].map(([id, resolution, size]) =>
+    createSourceCandidate({
+      id,
+      url: `https://example.invalid/${id}.mp4`,
+      behaviorHints: { filename: `Example.${resolution}.WEB-DL.mkv`, videoSize: size }
+    })
+  );
+  let settled = false,
+    launches = 0,
+    winner;
+  const screen = withZStreamPlayback({});
+  Object.assign(screen, {
+    zDecision: { key: "auto_pick" },
+    zContext: context,
+    zProbeStarted: true,
+    streamSearchCompleted: true,
+    params: {},
+    zConnection: { state: () => ({ decision: settled, figure: settled, mbps: 15 }) },
+    zOptions: () => buildQualityOptions(candidates, context),
+    zLaunchAutomatic(candidate) {
+      launches++;
+      winner = candidate;
+      this.zNavigating = true;
+    }
+  });
+  screen.zTryQualitySelection();
+  assert.equal(launches, 0);
+  settled = true;
+  screen.zTryQualitySelection();
+  screen.zTryQualitySelection();
+  assert.equal(launches, 1);
+  assert.equal(winner.stream.id, "1080");
+  zHarness.router.getCurrent = () => "player";
+});
+test("a successful side probe gives a slow healthy source 35 seconds; a late rejection after the first frame is ignored", async (ctx) => {
+  ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
+  const { screen, params } = player();
+  await screen.mount(params);
+  let resolveProbe;
+  zHarness.probe = () => new Promise((resolve) => (resolveProbe = resolve));
+  const url = "https://example.invalid/a.mp4";
+  screen.startPlayerControllerPlayback(
+    url,
+    {},
+    { sourceCandidate: screen.getCurrentStreamCandidate() }
+  );
+  resolveProbe({ type: "PASS" });
+  await Promise.resolve();
+  screen.zAttemptStartedAt = Date.now() - 20000;
+  screen.zPlaybackTick();
+  assert.equal(screen.zChain.index, 0);
+  assert.equal(screen.zProbePass, true);
+  screen.startPlayerControllerPlayback(
+    url,
+    {},
+    { sourceCandidate: screen.getCurrentStreamCandidate() }
+  );
+  screen.hasPresentedPlaybackFrame = true;
+  resolveProbe({ type: "DEAD", reason: "http_403" });
+  await Promise.resolve();
+  assert.equal(screen.zChain.index, 0);
+  screen.cleanup();
+  zHarness.probe = async () => ({ type: "FAILED" });
+});
+test("a bad side probe advances exactly once and a request from a retired player is harmless", async (ctx) => {
+  ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
+  const { screen, params } = player();
+  await screen.mount(params);
+  let resolveProbe;
+  zHarness.probe = () => new Promise((resolve) => (resolveProbe = resolve));
+  screen.startPlayerControllerPlayback(
+    "https://example.invalid/a.mp4",
+    {},
+    { sourceCandidate: screen.getCurrentStreamCandidate() }
+  );
+  resolveProbe({ type: "PLACEHOLDER" });
+  await Promise.resolve();
+  assert.equal(screen.zChain.index, 1);
+  ctx.mock.timers.tick(1);
+  screen.startPlayerControllerPlayback(
+    "https://example.invalid/b.mp4",
+    {},
+    { sourceCandidate: screen.getCurrentStreamCandidate() }
+  );
+  screen.cleanup();
+  resolveProbe({ type: "DEAD" });
+  await Promise.resolve();
+  assert.equal(screen.zChain, null);
+  zHarness.probe = async () => ({ type: "FAILED" });
+});
+test("an implausibly short provider slate advances the chain even if it rendered a frame", async (ctx) => {
+  ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
+  const { screen, params } = player();
+  params.zAutomaticPlayback.context.runtimeMinutes = 120;
+  await screen.mount(params);
+  screen.hasPresentedPlaybackFrame = true;
+  screen.getPlaybackDurationSeconds = () => 120;
+  screen.zPlaybackTick();
+  assert.equal(screen.zChain.index, 1);
+  assert.equal(screen.zRetrying, true);
+  screen.cleanup();
 });

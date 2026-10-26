@@ -43,7 +43,7 @@ test("arrival copies only compatible keys, translating Kotlin subtitle names and
       subtitle_secondary_language: "en"
     }
   );
-  assert.equal(resolvePlaybackSettings({ playbackMode: "INSTANT" }).playbackMode, "STREAMLINED");
+  assert.equal(resolvePlaybackSettings({ playbackMode: "INSTANT" }).playbackMode, "INSTANT");
 });
 
 test("unfinished, absent and malformed setup records cannot become import offers", () => {

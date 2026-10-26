@@ -108,15 +108,15 @@ test("existing installs default to classic", () => {
   assert.equal(playbackModeFromStorage(" STREAMLINED "), PLAYBACK_MODE.STREAMLINED);
 });
 
-test("a withheld mode is coerced on read and its stored key is left alone", () => {
+test("all three modes are selectable and existing Instant preferences now run Instant", () => {
   // ⚠ Instant is withheld until Phase D. The coercion is what lets a profile that chose it keep
   // the stored value and get Instant back the moment `isSelectable` says yes - rewriting storage
   // would forget the choice for good.
   assert.ok(isSelectable(PLAYBACK_MODE.CLASSIC));
   assert.ok(isSelectable(PLAYBACK_MODE.STREAMLINED));
-  assert.ok(!isSelectable(PLAYBACK_MODE.INSTANT));
+  assert.ok(isSelectable(PLAYBACK_MODE.INSTANT));
 
-  assert.equal(coerceSelectable(PLAYBACK_MODE.INSTANT), PLAYBACK_MODE.STREAMLINED);
+  assert.equal(coerceSelectable(PLAYBACK_MODE.INSTANT), PLAYBACK_MODE.INSTANT);
   assert.equal(coerceSelectable(PLAYBACK_MODE.CLASSIC), PLAYBACK_MODE.CLASSIC);
   // Reading storage does not rewrite it.
   assert.equal(playbackModeFromStorage("INSTANT"), PLAYBACK_MODE.INSTANT);

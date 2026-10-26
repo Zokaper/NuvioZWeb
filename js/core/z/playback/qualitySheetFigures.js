@@ -6,9 +6,8 @@
  * Both surfaces quote the same figures off the same preview, so deriving them twice is how the
  * strip and the column under it start disagreeing about the same file.
  *
- * ⚠ **No connection fit on TV.** Mobile marks rows its measured connection may not carry. The TV
- * measures nothing (see `docs/Z-PORT-MATRIX.md`: a connection figure has to be measured, never
- * inferred from a link type), so every row is offered plainly and the "Needs" figure stands alone.
+ * The view compares these needs with the settled, measured connection. Unknown throughput never
+ * produces a fit warning; a link type or AVPlay buffering percentage is not a measurement.
  */
 
 import {

@@ -1,4 +1,8 @@
-import { groupQualityOptions } from "../../core/z/playback/playbackQualityOptions.js";
+import {
+  groupQualityOptions,
+  connectionFit,
+  requiredMbpsFor
+} from "../../core/z/playback/playbackQualityOptions.js";
 import { qualityFigures, columnBand } from "../../core/z/playback/qualitySheetFigures.js";
 import { qualityLabel } from "../../core/z/playback/playbackSourceSelector.js";
 import { SDR, UNKNOWN_FACT } from "../../core/z/playback/playbackLoadingState.js";
@@ -29,23 +33,32 @@ function needs(figures) {
     [figures.neededMbps]
   );
 }
+function connectionMark(option, context, connection) {
+  if (!connection?.figure) return "";
+  const figures = qualityFigures(option, context);
+  const fit = connectionFit(
+    option.requiredMbps ?? (figures.preview ? requiredMbpsFor(figures.preview, context) : null),
+    connection.mbps
+  );
+  return fit?.isOverConnection ? " z-over-connection" : "";
+}
 
 function focusClass(focusId, id) {
   return focusId === id ? " focused" : "";
 }
 
-function hero(option, context, focusId, busy) {
+function hero(option, context, focusId, busy, connection) {
   const figures = qualityFigures(option, context);
   const headline =
     [figures.resolutionLabel, figures.provenance].filter(Boolean).join(" · ") || UNKNOWN_FACT;
-  return `<button class="z-quality-hero focusable${focusClass(focusId, option.id)}" data-z-choice="${e(option.id)}" aria-disabled="${Boolean(busy)}">
+  return `<button class="z-quality-hero focusable${focusClass(focusId, option.id)}${connectionMark(option, context, connection)}" data-z-choice="${e(option.id)}" aria-disabled="${Boolean(busy)}">
     <span class="z-quality-hero-main"><span class="z-eyebrow">${e(t("playback_quality_best"))}</span>
       <span class="z-quality-hero-line"><strong${figures.isTheatricalCapture ? ' class="z-quality-cam"' : ""}>${e(headline)}</strong>${chips(figures)}</span></span>
     <span class="z-quality-hero-figure"><span class="z-eyebrow">${e(t("playback_quality_column_size"))}</span><b>${e(formatSize(figures.sizeBytes))}</b></span>
     <span class="z-quality-hero-figure"><span class="z-eyebrow">${e(t("playback_quality_column_needs"))}</span><b>${e(needs(figures))}</b></span></button>`;
 }
 
-function cell(option, group, context, { focusId, busy, bestKey }) {
+function cell(option, group, context, { focusId, busy, bestKey, connection }) {
   const figures = qualityFigures(option, context);
   const band = columnBand(group, option);
   let label = band.band
@@ -57,7 +70,7 @@ function cell(option, group, context, { focusId, busy, bestKey }) {
       t("playback_quality_variant_max")
     ]);
   const recommended = bestKey && figures.sourceKey === bestKey ? " z-best-match" : "";
-  return `<button class="z-quality-cell focusable${focusClass(focusId, option.id)}${recommended}" data-z-choice="${e(option.id)}" aria-disabled="${Boolean(busy)}">
+  return `<button class="z-quality-cell focusable${focusClass(focusId, option.id)}${recommended}${connectionMark(option, context, connection)}" data-z-choice="${e(option.id)}" aria-disabled="${Boolean(busy)}">
       <span class="z-quality-cell-band">${e(label)}</span>${chips(figures)}
       <span class="z-quality-cell-figures">${e(formatSize(figures.sizeBytes))}<i>·</i>${e(needs(figures))}</span>
       <span class="z-quality-cell-provenance${figures.isTheatricalCapture ? " z-quality-cam" : ""}">${e(figures.provenance || "")}</span></button>`;
@@ -72,7 +85,15 @@ function skeleton() {
 export function renderQualitySheet(
   options,
   context,
-  { loading, busy, focusId = "best", title = "", uncached = false, backdrop = "" } = {}
+  {
+    loading,
+    busy,
+    focusId = "best",
+    title = "",
+    uncached = false,
+    backdrop = "",
+    connection = null
+  } = {}
 ) {
   const groups = groupQualityOptions(options);
   const bestKey = options[0] ? qualityFigures(options[0], context).sourceKey : null;
@@ -91,21 +112,27 @@ export function renderQualitySheet(
       ? skeleton()
       : `<p class="z-quality-empty">${e(t("playback_quality_no_match"))}</p>`;
   } else {
-    body = `${hero(options[0], context, focusId, busy)}<div class="z-quality-columns">${groups
+    body = `${hero(options[0], context, focusId, busy, connection)}<div class="z-quality-columns">${groups
       .slice(1)
       .map(
         (group) =>
           `<div class="z-quality-column"><h2>${e(qualityLabel(group.resolution))}</h2>${group.options
-            .map((option) => cell(option, group, context, { focusId, busy, bestKey }))
+            .map((option) => cell(option, group, context, { focusId, busy, bestKey, connection }))
             .join("")}</div>`
       )
       .join("")}</div>`;
   }
   const image = cssImage(backdrop, QUALITY_SCRIM);
-  return `<div class="z-quality-screen"${image ? ` style="background-image: ${e(image)}"` : ""}><div class="z-quality-panel">
+  const connectionText = !connection?.figure
+    ? t("playback_quality_checking_connection")
+    : connection.mbps > 0
+      ? t("playback_quality_last_measured", [Math.round(connection.mbps)])
+      : t("playback_quality_connection_unknown");
+  const dense = groups.some((group) => group.options.length >= 4);
+  return `<div class="z-quality-screen"${image ? ` style="background-image: ${e(image)}"` : ""}><div class="z-quality-panel${dense ? " z-quality-dense" : ""}">
     <header class="z-quality-header">${title ? `<span class="z-eyebrow">${e(title)}</span>` : ""}<h1>${e(t(uncached ? "playback_uncached_title" : "playback_quality_title"))}</h1><p>${e(description)}</p></header>
     ${body}
-    <div class="z-quality-footer"><button class="z-quiet-button focusable${focusClass(focusId, "manual")}" data-z-choice="manual">${e(t("playback_quality_manual"))}</button></div></div></div>`;
+    <div class="z-quality-footer">${connection && !uncached ? `<button class="z-quiet-button z-connection-button focusable${focusClass(focusId, "connection")}" data-z-choice="connection">${e(connectionText)}<small>${e(t("playback_quality_over_connection_legend"))}</small></button>` : ""}<button class="z-quiet-button focusable${focusClass(focusId, "manual")}" data-z-choice="manual">${e(t("playback_quality_manual"))}</button></div></div></div>`;
 }
 
 // Spatial D-pad navigation works for six uneven columns, the hero and the footer alike.

@@ -6,18 +6,21 @@ import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
 import { playbackSelectionContextOf } from "../../core/z/playback/playbackSelectionContextFactory.js";
 import { automaticEmbeddedSubtitleLanguage } from "../../core/z/playback/playbackSelectionContext.js";
 import { decide, createRouteInputs, PLAYBACK_ROUTE_DECISION } from "../../core/z/playback/playbackModeRouter.js";
-import { buildQualityOptions } from "../../core/z/playback/playbackQualityOptions.js";
+import { buildQualityOptions, stickyAffordable } from "../../core/z/playback/playbackQualityOptions.js";
 import { extractSourceFacts } from "../../core/z/sources/sourceFacts.js";
 import {
   selectSource,
   SELECTION_RESULT,
   SELECTION_TIMEOUT_MS,
   describe,
-  contentIdentityRejections
+  contentIdentityRejections,
+  probeTarget,
+  candidateHeight
 } from "../../core/z/playback/playbackSourceSelector.js";
 import { streamRouteSurface, createSurfaceInputs, STREAM_ROUTE_SURFACE, playbackChain } from "../../core/z/playback/streamRouteSurface.js";
 import { renderQualitySheet, moveQualityFocus } from "./qualitySheet.js";
 import { showPlaybackLoading, hidePlaybackLoading, t } from "./playbackPresentation.js";
+import { createConnectionSession } from "./playbackNetwork.js";
 
 const back = (event) => [8, 27, 10009, 461].includes(Number(event?.keyCode));
 const select = (event) => [13, 23, 66].includes(Number(event?.keyCode));
@@ -50,6 +53,8 @@ export function withZStreamPlayback(vanilla) {
     ...vanilla,
     async mount(params = {}, navigation = {}) {
       clearInterval(this.zSelectionTimer);
+      this.zConnection?.dispose();
+      this.zProbeStarted = false;
       this.zAutomaticPlayback = null;
       this.zPendingQuality = null;
       this.zUncached = null;
@@ -61,13 +66,26 @@ export function withZStreamPlayback(vanilla) {
         createRouteInputs({ mode: ZPlaybackSettingsStore.get().playbackMode, manualSelection: Boolean(params.manualSelection) })
       );
       this.zContext = selectionContext(params);
-      this.zSelectionStartedAt = null;
+      this.zSelectionStartedAt = Date.now();
       this.zNavigating = false;
+      this.zConnection = createConnectionSession({
+        target: () => (this.zOptions()[0] ? probeTarget(this.zOptions()[0], this.zContext) : null),
+        onChange: () => {
+          if (Router.getCurrent() !== "stream" || this.zManual || this.zNavigating) return;
+          // A fresh cached estimate can settle synchronously inside zTryQualitySelection.
+          // Let its existing timer choose; re-entering here could issue two player handoffs.
+          this.render();
+        }
+      });
+      if (this.zIsAutomaticRoute()) this.zSelectionTimer = setInterval(() => this.zTryQualitySelection(), 250);
       await vanilla.mount.call(this, params, navigation);
       if (this.zUncoverReason) this.showStreamToast?.(this.zUncoverReason);
     },
     zIsAutomaticRoute() {
-      return this.zDecision?.key === PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET;
+      return [PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET, PLAYBACK_ROUTE_DECISION.AUTO_PICK].includes(this.zDecision?.key);
+    },
+    zIsInstantRoute() {
+      return this.zDecision?.key === PLAYBACK_ROUTE_DECISION.AUTO_PICK;
     },
     zSurface() {
       return streamRouteSurface(
@@ -77,7 +95,8 @@ export function withZStreamPlayback(vanilla) {
           manualSourceListRequested: this.zManual,
           uncoverReason: this.zUncoverReason,
           hasNavigatedAway: this.zNavigating,
-          isQualitySheetRoute: this.zIsAutomaticRoute(),
+          isQualitySheetRoute: this.zDecision?.key === PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET || Boolean(this.zUncached),
+          isAutoPickRoute: this.zIsInstantRoute() && !this.zUncached,
           qualitySheetDismissed: Boolean(this.zPendingQuality),
           isAutoPlaybackStarting: Boolean(this.zPendingQuality),
           awaitingUserAnswer: Boolean(this.zUncached)
@@ -92,6 +111,7 @@ export function withZStreamPlayback(vanilla) {
     },
     render() {
       this.cancelScheduledRender();
+      this.zEnsureConnection();
       const surface = this.zSurface();
       if (surface === STREAM_ROUTE_SURFACE.SOURCE_LIST) return vanilla.render.call(this);
       if (surface === STREAM_ROUTE_SURFACE.HAND_OFF) return;
@@ -107,7 +127,7 @@ export function withZStreamPlayback(vanilla) {
       }
       const options = this.zOptions();
       if (options.length && !this.zUserMovedQualityFocus && !this.zUncached) this.zFocusId = options[0].id;
-      if (!options.some((option) => option.id === this.zFocusId) && !["manual", "cache"].includes(this.zFocusId))
+      if (!options.some((option) => option.id === this.zFocusId) && !["manual", "cache", "connection"].includes(this.zFocusId))
         this.zFocusId = options[0]?.id || "manual";
       this.container.innerHTML = renderQualitySheet(options, this.zContext, {
         title: this.params?.itemTitle || this.params?.playerTitle,
@@ -115,8 +135,21 @@ export function withZStreamPlayback(vanilla) {
         focusId: this.zFocusId,
         loading: !this.streamSearchCompleted,
         busy: Boolean(this.zPendingQuality),
-        uncached: Boolean(this.zUncached)
+        uncached: Boolean(this.zUncached),
+        connection: this.zConnection?.state()
       });
+    },
+    zEnsureConnection() {
+      if (
+        this.zProbeStarted ||
+        !this.zIsAutomaticRoute() ||
+        this.zManual ||
+        this.zNavigating ||
+        (!(this.streams || []).length && !this.streamSearchCompleted)
+      )
+        return;
+      this.zProbeStarted = true;
+      this.zConnection?.start();
     },
     maybeAutoResumeStream(...args) {
       if (this.zIsAutomaticRoute() || this.params?.manualSelection) return;
@@ -142,6 +175,7 @@ export function withZStreamPlayback(vanilla) {
       this.zUncoverReason = reason;
       this.zPendingQuality = null;
       this.zUncached = null;
+      this.zConnection?.dispose();
       clearInterval(this.zSelectionTimer);
       hidePlaybackLoading();
       // Classic's auto-picker must not wake up after an explicit escape.
@@ -159,6 +193,10 @@ export function withZStreamPlayback(vanilla) {
         return;
       }
       if (this.zNavigating || this.zPendingQuality) return;
+      if (id === "connection") {
+        this.zConnection?.start(true);
+        return;
+      }
       if (id === "cache" && this.zUncached) {
         const result = this.zUncached;
         this.zUncached = null;
@@ -169,19 +207,31 @@ export function withZStreamPlayback(vanilla) {
       this.zPendingQuality = id;
       this.zSelectionStartedAt = Date.now();
       this.render();
+      clearInterval(this.zSelectionTimer);
       this.zSelectionTimer = setInterval(() => this.zTryQualitySelection(), 250);
       this.zTryQualitySelection();
     },
     zTryQualitySelection() {
-      if (!this.zPendingQuality || this.zNavigating || this.zManual || Router.getCurrent() !== "stream") return;
+      if (
+        (!this.zPendingQuality && !this.zIsInstantRoute()) ||
+        this.zNavigating ||
+        this.zManual ||
+        this.zUncached ||
+        Router.getCurrent() !== "stream"
+      )
+        return;
+      this.zEnsureConnection();
       if (!this.streamSearchCompleted) {
         if (Date.now() - this.zSelectionStartedAt >= SELECTION_TIMEOUT_MS)
           this.zChooseManual("selection timeout", t("playback_sources_timed_out"));
         else this.render();
         return;
       }
+      if (this.zIsInstantRoute() && !this.zConnection?.state().decision) return;
       clearInterval(this.zSelectionTimer);
-      const option = this.zOptions().find((entry) => entry.id === this.zPendingQuality);
+      const option = this.zIsInstantRoute()
+        ? stickyAffordable(this.zOptions(), this.params?.zInstantHeight ?? null, this.zConnection?.state().mbps, null, this.zContext)
+        : this.zOptions().find((entry) => entry.id === this.zPendingQuality);
       if (!option) {
         this.zChooseManual("quality unavailable", t("playback_quality_no_match"));
         return;
@@ -203,6 +253,8 @@ export function withZStreamPlayback(vanilla) {
       this.zAutomaticPlayback = {
         entries: playbackChain(winner, fallbacks).map((candidate) => ({ streamId: candidate.stream.id, label: describe(candidate.facts) })),
         context: this.zContext,
+        mode: this.zIsInstantRoute() ? "INSTANT" : "STREAMLINED",
+        instantHeight: this.zIsInstantRoute() ? candidateHeight(winner) : null,
         allowUncachedStreamId: allowUncached ? winner.stream.id : null,
         startedAt: this.zSelectionStartedAt || Date.now()
       };
@@ -236,7 +288,7 @@ export function withZStreamPlayback(vanilla) {
         this.consumeBackRequest();
         return;
       }
-      if (this.zPendingQuality || this.zNavigating) {
+      if (this.zPendingQuality || this.zNavigating || (this.zIsInstantRoute() && !this.zUncached)) {
         if (select(event) && Date.now() - this.zSelectionStartedAt >= 5000) this.zChooseManual("manual escape");
         return;
       }
@@ -272,6 +324,7 @@ export function withZStreamPlayback(vanilla) {
     },
     cleanup() {
       clearInterval(this.zSelectionTimer);
+      this.zConnection?.dispose();
       if (!this.zAutomaticPlayback || !this.zNavigating) hidePlaybackLoading();
       return vanilla.cleanup.call(this);
     }

@@ -2,16 +2,70 @@
 
 Last updated: 2026-10-26
 
-|                      |                                                                                                                                                                                                                                                                  |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                       |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                      |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                  |
-| Debug counter        | `DEBUG_BUILD=10`; [debug-v1.2.9-z1.10](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.10) published (WGT + IPK, unconfigured), the Z screen restyle.                                                                                          |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2: steps 1-3.3 implemented. Remaining playback work includes Instant / measured connection, P12 transition coordination and P16 source probing.                                                                   |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                               |
-| Verified             | `npm run test:z` **417/417**; browser scenarios cover the quality grid, D-pad, failover, manual exits, actual video playback and a 4,000-source panel; lint, format, build and both packages pass; Q60B playback/menu/source-panel and first-launch checks below |
-| **Not** verified     | Physical failover and early-Tizen/webOS behavior remain unverified. On the Q60B (2026-10-25) the local build with `local.properties` showed the QR and the maintainer linked their Nuvio account; TMDB is still keyless, Trakt/Simkl/MDBList/Premiumize unset.   |
+|                      |                                                                                                                                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
+| Debug counter        | `DEBUG_BUILD=11`; playback completion chunk prepared for the debug workflow (WGT + IPK). Public packages remain unconfigured; local packages use ignored `local.properties`.                                                                                             |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
+| Verified             | `npm run test:z` **457/457**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
+| **Not** verified     | Debug 10 restyle and this playback completion chunk have not been watched on a TV. Maintainer explicitly requested spaced, combined TV test chunks on 2026-10-26. Q60B checks below describe earlier builds; physical failover, early Tizen and webOS remain open.       |
+
+## Stage 2 playback completion chunk (2026-10-26, debug 11)
+
+**Maintainer's standing-rule answer:** no TV checks since debug 10's screen restyle. They asked to
+finish the three playback modes before the next proper TV test, in spaced, small chunks. This is
+one playback chunk; no TV install or physical verification is claimed, and Stage 3 has not begun.
+
+- **Instant is enabled** in the single selectability rule, Settings and first-launch. An imported
+  Instant preference now runs Instant without being rewritten. It waits for source settlement and
+  a connection decision, uses the existing affordable-quality picker, quality ceiling, ranking,
+  loading host and three-source chain. Unknown speed selects conservatively; no Wi-Fi preset is
+  passed off as a measurement. First frame names what opened and offers OK to change source.
+- **N1-N3 connection:** bounded ranged GET (32 MiB / 2.5 s transfer / 5 s decision deadline), no
+  debrid mint for measurement. Direct source plus its request headers, neutral CDN for unresolved
+  links/manifests. Kotlin's first-eighth exclusion, eight byte blocks/lower median and sample
+  floors are ported, plus provider-specific freshness, blending, forced replacement, seven-day
+  expiry, 32 entries and five-second persistence throttle. The quality footer has a D-pad re-test
+  and measured fit warnings; a pending re-test hides the old figure until finished. Tizen's network
+  API scopes cold-start estimates to the active connection; where identity is unavailable the
+  cache is session-scoped. HTML buffered ranges feed the passive meter; AVPlay percentages and
+  adaptive content bitrate are **not** throughput, so AVPlay uses the active probe only.
+- **P12 transitions:** manual Classic opens the source panel, Streamlined asks quality over the
+  current player, Instant selects immediately. Automatic transitions resolve while the old episode
+  plays, then count down three seconds. Back cancels, a manual Instant tap promotes the current
+  request, stale results cannot switch episodes, repeated taps cannot double-launch, and the next
+  player stays covered until its first frame. Preferences and the next episode's own runtime are
+  carried through the shared context factory; automatic uncached playback never starts unattended.
+- **P16 probes:** one `bytes=0-1` GET beside player attach, aborted at response headers. HTTP errors,
+  non-media responses and implausibly small provider slates enter the same named failure chain;
+  request/CORS failures pass unjudged. Native-only request headers (such as Referer or User-Agent)
+  skip the XHR probe because its response would not describe the native player's request. Late results after first frame/source change/cleanup are
+  ignored. A successful probe supplies watchdog evidence of life; duration plausibility catches
+  short slates even after a rendered frame. A Tizen 4 cancellation fallback needs no new dependency.
+- **Integration fixes:** an unstarted connection no longer reports settled; cached settlement cannot
+  re-enter Instant and launch twice. Duplicate URLs retain the chosen source's identity/headers,
+  preventing a rejected slate from being ignored as an error for the wrong chain member. Four-band
+  grids use tighter spacing so the new footer and every cell remain inside the 1080p safe area.
+- **Patch surface:** one new upstream-owned file, `playerScreenMethods-01-mount.js`: two-line Z-only
+  preferred-candidate correction immediately after vanilla's URL lookup. Its index is used before
+  any overridable getter, so a decorator alone cannot correct the launch. **drop-at-next-sync**
+  when upstream prioritizes the explicit preferred ID. All other behavior extends existing Z seams.
+- **PC verification:** 457 tests; controlled ranged XHR measured about 11 Mb/s; real video plays in
+  Instant; actual 404, HTML and small-file responses fall back before the startup watchdog. Remote
+  arrows/OK reach every quality, re-test and manual exit. Both ordinary and largest six-resolution
+  grids fit the safe area. Manual Streamlined Back stays on the old episode; automatic countdown
+  keeps that video advancing; cancellation prevents a late swap; manual Instant reaches the next
+  episode's first frame. No uncaught browser errors. Upstream package-script parity: **18/19** pass;
+  only the already documented TMDB test's stale config stub fails. No Kotlin code changed.
+
+**Next maintainer test chunk:** install the configured debug 11 WGT, then try Classic, Streamlined
+and Instant on the same title; check the quality/loading/setup restyle, a bad-source fallback,
+manual Change source and next-episode choice/countdown/Back. Retest speed once. Keep early-Tizen,
+webOS and the downstairs Tizen 8+ set as separate later checkpoints. The package is prepared here;
+the actual Samsung player and remote behavior remain unverified until that run.
 
 ## Z playback screens restyled from the Kotlin (2026-10-26)
 
