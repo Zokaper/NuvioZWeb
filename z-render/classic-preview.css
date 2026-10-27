@@ -1,0 +1,94 @@
+/* Preview only: production never loads this file. Full upstream card content is retained. */
+.z-classic-preview .stream-route-shell {
+  height: 100%;
+  background: var(--bg-color);
+}
+.z-classic-preview .stream-route-content {
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+}
+.z-classic-preview .stream-route-left-inner {
+  align-items: flex-start;
+  text-align: start;
+}
+.z-classic-preview .stream-route-title {
+  margin-top: 16px;
+  font-size: 62px;
+  line-height: 1.1;
+}
+.z-classic-preview .preview-meta {
+  margin: 12px 0 0;
+  font-size: 24px;
+  color: var(--text-secondary);
+}
+.z-classic-preview .stream-route-right {
+  padding-top: 64px;
+}
+.z-classic-preview .preview-tabs {
+  display: flex;
+  gap: 14px;
+  margin: 0 64px 24px 24px;
+  font-size: 24px;
+}
+.z-classic-preview .preview-tabs span {
+  padding: 12px 22px;
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  color: var(--text-secondary);
+}
+.z-classic-preview .preview-tabs .selected {
+  background: var(--secondary-color);
+  color: var(--on-secondary);
+}
+.z-classic-preview .stream-route-list {
+  height: calc(100% - 80px);
+  padding: 8px 64px 64px 24px;
+}
+.z-classic-preview .stream-route-card {
+  border-radius: 18px;
+}
+.z-classic-preview .stream-route-card.focused {
+  outline: 3px solid var(--focus-color);
+  outline-offset: 3px;
+  background: var(--focus-bg);
+  transform: none;
+}
+.z-classic-preview .stream-route-card-heading {
+  letter-spacing: 0.2px;
+}
+.z-classic-preview .stream-route-card-line {
+  letter-spacing: 0.2px;
+}
+.classic-compact .stream-route-card-row {
+  margin-bottom: 20px;
+}
+.classic-compact .stream-route-card {
+  padding: 20px 24px;
+}
+.classic-compact .stream-route-card-heading {
+  font-size: 26px;
+  line-height: 34px;
+}
+.classic-compact .stream-route-card-line {
+  font-size: 21px;
+  line-height: 29px;
+  margin-top: 4px;
+}
+.classic-roomy .stream-route-card-row {
+  margin-bottom: 24px;
+}
+.classic-roomy .stream-route-card {
+  padding: 26px 28px;
+}
+.classic-roomy .stream-route-card-heading {
+  font-size: 28px;
+  line-height: 38px;
+}
+.classic-roomy .stream-route-card-line {
+  font-size: 23px;
+  line-height: 31px;
+  margin-top: 6px;
+}
+
+.z-classic-preview .stream-route-card-line.secondary {
+  margin-top: 0;
+}

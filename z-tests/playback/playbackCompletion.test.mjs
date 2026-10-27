@@ -188,6 +188,7 @@ test("a failed connection measurement settles unknown; cancelling a route cannot
     writes = 0,
     changes = 0;
   const session = createConnectionSession({
+    prepare: async () => {},
     measure: () => new Promise((resolve) => (release = resolve)),
     estimates: { peek: () => null, age: () => null, record: () => writes++ },
     onChange: () => changes++
@@ -198,13 +199,15 @@ test("a failed connection measurement settles unknown; cancelling a route cannot
     "opening the session cannot report an unstarted probe as settled"
   );
   session.start();
-  await Promise.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
+  const changesBeforeDispose = changes;
   session.dispose();
   release(400);
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(writes, 0);
-  assert.equal(changes, 1);
+  assert.equal(changes, changesBeforeDispose);
   const failed = createConnectionSession({
+    prepare: async () => {},
     measure: async () => {
       throw new Error("CORS");
     },
@@ -219,11 +222,12 @@ test("a late connection probe can settle after the decision without regressing a
   ctx.mock.timers.enable({ apis: ["setTimeout"] });
   const resolvers = [];
   const session = createConnectionSession({
+    prepare: async () => {},
     measure: () => new Promise((resolve) => resolvers.push(resolve)),
     estimates: { peek: () => 20, age: () => null, record() {} }
   });
   session.start();
-  await Promise.resolve();
+  await new Promise((resolve) => setImmediate(resolve));
   ctx.mock.timers.tick(5000);
   assert.deepEqual(session.state(), { decision: true, figure: false, mbps: 20 });
   session.start(true);

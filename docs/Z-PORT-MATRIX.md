@@ -36,6 +36,11 @@ Last updated 2026-10-27.
 > next episode loads normally, satisfying the requested picture/motion and spinner check. This
 > closes that reported path; smoothness and automatic countdown/failover remain open.
 >
+> **Debug 15:** connection status no longer performs native reads while rendering; unchanged
+> quality previews and the player's ordered language-alias table are reused. The maintainer chose
+> the roomier Classic source-list preview. TMDB enhancement defaults on for absent values while
+> preserving saved/synced opt-outs. See the live handoff for installed checks and acceptance limits.
+>
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
 > AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a

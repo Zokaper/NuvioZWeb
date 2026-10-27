@@ -3,7 +3,7 @@ import { createProfileScopedStore } from "./profileScopedStore.js";
 const KEY = "tmdbSettings";
 
 const DEFAULTS = {
-  enabled: false,
+  enabled: true,
   modernHomeEnabled: false,
   enrichContinueWatching: true,
   language: "en",
@@ -36,7 +36,7 @@ export function normalizeTmdbLanguageCode(value = DEFAULTS.language) {
 function normalizeTmdbSettings(value = {}) {
   const source = value && typeof value === "object" ? value : {};
   return {
-    enabled: Boolean(source.enabled),
+    enabled: source.enabled == null ? DEFAULTS.enabled : Boolean(source.enabled),
     modernHomeEnabled: Boolean(source.modernHomeEnabled),
     enrichContinueWatching: source.enrichContinueWatching !== false,
     language: normalizeTmdbLanguageCode(source.language),

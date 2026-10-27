@@ -2,16 +2,45 @@
 
 Last updated: 2026-10-27
 
-|                      |                                                                                                                                                                                                                                                                          |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=14`; configured signed production WGT installed/launched on the Q60B, 2026-10-27. [debug-v1.2.9-z1.14](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.14) published (WGT + IPK).                                                         |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
-| Verified             | `npm run test:z` **468/468**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
-| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                                                                                        |
+|                      |                                                                                                                                                                                                                       |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                            |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                           |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                       |
+| Debug counter        | `DEBUG_BUILD=15`; configured packages built; final signed Q60B inspection and debug publication in progress below. Debug 14 remains the published prerelease until that completes.                                    |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.            |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                    |
+| Verified             | `npm run test:z` **480/480**; focused Samsung/subtitle-language checks and loading-host browser checks pass. Debug 15 Q60B measurements and Classic navigation are detailed below; full TV acceptance remains scoped. |
+| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                                     |
+
+## Debug 15: measured responsiveness and roomier Classic (2026-10-27)
+
+The maintainer authorized the remaining measured fixes, Classic UI polish and the TMDB default.
+After viewing both real-card renders, they chose the **roomier second preview**. It is implemented:
+28/38 px headings, 23/31 px descriptions, 26/28 px card padding, a wider list, 24 px virtual-row
+spacing and a visible three-pixel flat focus outline. Full descriptions/Fusion badges remain.
+Q60B runtime checks reach row 321 of 322 with 20 rendered cards, return to row zero after sixteen
+down/up moves and keep focus inside the viewport; sampled roomier handler maximum 13.7 ms.
+
+Connection status is a memory snapshot with native work after paint, once-per-lookup identity,
+network-change invalidation and actual-network completion checks. Q60B status reads improve from
+13.5-34.4 ms to 0.03-0.10 ms; repeated Streamlined renders from 51-128 ms to 6-9 ms. Six quality
+markup scenarios are identical after caching unchanged previews. Selection/ranking rules stay intact.
+
+A separate startup trace found a 4.6-second metadata task and repeated track-language inference.
+Three rebuilds of 11 audio/84 subtitle choices made 1,377 identical 65-entry alias sorts (487 ms
+in sorting). The Z helper reuses the same order and bounds inference memoization to 512 results,
+separating first/unique matching and retaining ambiguous results. Real subtitle-language parity
+passes. This does not yet establish end-to-end loading smoothness or eliminate every native call.
+
+TMDB enhancement now defaults on for missing/null values; saved/synced opt-outs and the separate
+modern Home default are preserved. This adds two upstream-owned patch sites: the TMDB normalizer
+and the existing player language helper. Both are documented in the canonical patch ledger; the
+virtual-row adaptation stays in the existing Z decorator. No Kotlin code or TV preference changed.
+
+480/480 tests, focused Samsung seek/loading/sequencing/call-trace/direct/redirect checks,
+subtitle-language parity, browser loading lifecycle, lint and configured packages pass. Final
+signed-build inspection and publication are in progress. [Measurements, design and limits](docs/TV-PLAYBACK-DEBUG15-2026-10-27.md).
 
 ## Maintainer's focused debug 14 retest passed (2026-10-27)
 

@@ -12,6 +12,16 @@ import { escapeHtml as e, formatSize, t, cssImage } from "./playbackPresentation
 // per resolution, on a dialog surface over the title's artwork. Styles are in css/z.css.
 
 const QUALITY_SCRIM = "linear-gradient(rgba(0,0,0,0.72), rgba(0,0,0,0.72))";
+const figureCache = new WeakMap();
+// Options/context are replaced when discovery, preparation or preferences change. Keep the
+// same preview across connection updates, instead of rechecking every candidate per cell.
+function figuresFor(option, context) {
+  const cached = figureCache.get(option);
+  if (cached?.context === context) return cached.figures;
+  const figures = qualityFigures(option, context);
+  figureCache.set(option, { context, figures });
+  return figures;
+}
 
 // What a release does to your screen and speakers, as outlined marks in descending importance.
 function chips(figures) {
@@ -35,7 +45,7 @@ function needs(figures) {
 }
 function connectionMark(option, context, connection) {
   if (!connection?.figure) return "";
-  const figures = qualityFigures(option, context);
+  const figures = figuresFor(option, context);
   const fit = connectionFit(
     option.requiredMbps ?? (figures.preview ? requiredMbpsFor(figures.preview, context) : null),
     connection.mbps
@@ -48,7 +58,7 @@ function focusClass(focusId, id) {
 }
 
 function hero(option, context, focusId, busy, connection) {
-  const figures = qualityFigures(option, context);
+  const figures = figuresFor(option, context);
   const headline =
     [figures.resolutionLabel, figures.provenance].filter(Boolean).join(" · ") || UNKNOWN_FACT;
   return `<button class="z-quality-hero focusable${focusClass(focusId, option.id)}${connectionMark(option, context, connection)}" data-z-choice="${e(option.id)}" aria-disabled="${Boolean(busy)}">
@@ -59,7 +69,7 @@ function hero(option, context, focusId, busy, connection) {
 }
 
 function cell(option, group, context, { focusId, busy, bestKey, connection }) {
-  const figures = qualityFigures(option, context);
+  const figures = figuresFor(option, context);
   const band = columnBand(group, option);
   let label = band.band
     ? t(`playback_quality_variant_${band.band.toLowerCase()}`)
@@ -96,7 +106,7 @@ export function renderQualitySheet(
   } = {}
 ) {
   const groups = groupQualityOptions(options);
-  const bestKey = options[0] ? qualityFigures(options[0], context).sourceKey : null;
+  const bestKey = options[0] ? figuresFor(options[0], context).sourceKey : null;
   const description = uncached
     ? t("playback_uncached_description")
     : busy

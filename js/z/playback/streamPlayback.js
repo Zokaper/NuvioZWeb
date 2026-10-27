@@ -99,6 +99,18 @@ export function withZStreamPlayback(vanilla) {
     zIsInstantRoute() {
       return this.zDecision?.key === PLAYBACK_ROUTE_DECISION.AUTO_PICK;
     },
+    getStreamVirtualRowGap() {
+      if (this.streamVirtualRowGap != null) return Number(this.streamVirtualRowGap);
+      const gap =
+        this.container && typeof getComputedStyle === "function"
+          ? Number.parseFloat(getComputedStyle(this.container).getPropertyValue("--z-source-row-gap"))
+          : NaN;
+      if (Number.isFinite(gap) && gap >= 0) {
+        this.streamVirtualRowGap = gap;
+        return gap;
+      }
+      return vanilla.getStreamVirtualRowGap.call(this);
+    },
     zSurface() {
       return streamRouteSurface(
         createSurfaceInputs({

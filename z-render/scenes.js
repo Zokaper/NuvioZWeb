@@ -4,6 +4,7 @@
 // ?scene=quality | quality-loading | loading | loading-failed | setup-mode | setup-import
 // &theme=WHITE | GOLD | ... (any palette in js/ui/theme/themeColors.js)
 // &focus=<data-z-choice id or setup action> to draw a different focused control.
+// ?scene=classic-compact | classic-roomy previews source-list density, without changing the app.
 
 import { I18n } from "../js/i18n/index.js";
 import { ThemeColors } from "../js/ui/theme/themeColors.js";
@@ -117,7 +118,21 @@ async function main() {
   app.className = "screen";
   app.style.display = "block"; // ScreenUtils.show, as the router does.
 
-  if (scene === "quality" || scene === "quality-loading") {
+  if (scene === "classic-compact" || scene === "classic-roomy") {
+    const { StreamScreen } = await import("../js/ui/screens/stream/streamScreen.js");
+    const screen = Object.create(StreamScreen);
+    screen.isCardActionFocused = (index) => index === 0;
+    const cards = STREAMS.map((stream, index) =>
+      screen.renderStreamCard({ ...stream, id: `preview-${index}` }, index, false)
+    ).join("");
+    app.classList.add("z-classic-preview", scene);
+    app.innerHTML = `<div class="stream-route-shell stable"><div class="stream-route-content">
+      <section class="stream-route-left"><div class="stream-route-left-inner">
+        <p class="z-eyebrow">Choose a source</p><h1 class="stream-route-title">Dune: Part Two</h1>
+        <p class="preview-meta">2024 · 2h 46m</p><p class="preview-meta">${STREAMS.length} sources</p>
+      </div></section><section class="stream-route-right"><div class="preview-tabs"><span class="selected">All sources</span><span>4K</span><span>1080p</span><span>720p</span></div>
+      <div class="stream-route-list">${cards}</div></section></div></div>`;
+  } else if (scene === "quality" || scene === "quality-loading") {
     const loading = scene === "quality-loading";
     app.innerHTML = renderQualitySheet(loading ? [] : options, context, {
       title: PARAMS.itemTitle,

@@ -1,4 +1,5 @@
 import { PlayerController } from "../../../core/player/playerController.js";
+import { orderedTrackLanguageAliases, cachedTrackLanguageInference } from "../../../z/playback/trackLanguageAliases.js";
 
 import {
   audioTrackLabelConflictsWithCodec,
@@ -275,10 +276,12 @@ export function inferTrackLanguageCodeFromText(value) {
   if (!normalized) {
     return "";
   }
-  const padded = ` ${normalized} `;
-  const aliasEntries = Object.entries(LANGUAGE_NAME_ALIASES).sort((left, right) => right[0].length - left[0].length);
-  const match = aliasEntries.find(([name]) => padded.includes(` ${name} `));
-  return match?.[1] || "";
+  return cachedTrackLanguageInference(LANGUAGE_NAME_ALIASES, normalized, "first", () => {
+    const padded = ` ${normalized} `;
+    const aliasEntries = orderedTrackLanguageAliases(LANGUAGE_NAME_ALIASES);
+    const match = aliasEntries.find(([name]) => padded.includes(` ${name} `));
+    return match?.[1] || "";
+  });
 }
 
 export function inferUniqueTrackLanguageCodeFromText(value) {
@@ -286,29 +289,29 @@ export function inferUniqueTrackLanguageCodeFromText(value) {
   if (!normalized) {
     return "";
   }
-  const padded = ` ${normalized} `;
-  const matchedCodes = new Set();
-  Object.entries(LANGUAGE_NAME_ALIASES)
-    .sort((left, right) => right[0].length - left[0].length)
-    .forEach(([name, code]) => {
+  return cachedTrackLanguageInference(LANGUAGE_NAME_ALIASES, normalized, "unique", () => {
+    const padded = ` ${normalized} `;
+    const matchedCodes = new Set();
+    orderedTrackLanguageAliases(LANGUAGE_NAME_ALIASES).forEach(([name, code]) => {
       if (padded.includes(` ${name} `)) {
         matchedCodes.add(code);
       }
     });
-  if (matchedCodes.size === 1) {
-    return Array.from(matchedCodes)[0];
-  }
-  // A regional alias also contains its generic language name (for example,
-  // "Brazilian Portuguese" matches both pt-BR and pt). That is refinement,
-  // not ambiguity: keep the single regional variant.
-  const regionalCodes = Array.from(matchedCodes).filter((code) => code.includes("-"));
-  if (
-    regionalCodes.length === 1 &&
-    Array.from(matchedCodes).every((code) => code === regionalCodes[0] || code === regionalCodes[0].split("-")[0])
-  ) {
-    return regionalCodes[0];
-  }
-  return "";
+    if (matchedCodes.size === 1) {
+      return Array.from(matchedCodes)[0];
+    }
+    // A regional alias also contains its generic language name (for example,
+    // "Brazilian Portuguese" matches both pt-BR and pt). That is refinement,
+    // not ambiguity: keep the single regional variant.
+    const regionalCodes = Array.from(matchedCodes).filter((code) => code.includes("-"));
+    if (
+      regionalCodes.length === 1 &&
+      Array.from(matchedCodes).every((code) => code === regionalCodes[0] || code === regionalCodes[0].split("-")[0])
+    ) {
+      return regionalCodes[0];
+    }
+    return "";
+  });
 }
 
 export function getTrackLanguageValue(track = {}) {

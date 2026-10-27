@@ -1,6 +1,7 @@
 // Host adapters for the pure Kotlin network policies. No debrid resolution is spent on a test.
 import { ThroughputWindow } from "../../core/z/network/throughputWindow.js";
 import { canProbeRequestHeaders } from "../../core/z/playback/playbackSourceProbe.js";
+import { playbackPaint } from "./playbackPaint.js";
 import {
   measurementPlan,
   measuredRate,
@@ -13,7 +14,8 @@ import {
 } from "../../core/z/network/networkMeasurement.js";
 
 const STORAGE_KEY = "zPlaybackNetworkEstimates";
-const sessionNetwork = `session:${Date.now()}`;
+let anonymousNetworkRevision = 0;
+let sessionNetwork = `session:${Date.now()}:${anonymousNetworkRevision}`;
 // AbortController arrived after Tizen 4's browser. These jobs only need cancellation events,
 // so retain an equivalent local signal on engines without the native class.
 export function playbackCancellation() {
@@ -63,32 +65,33 @@ export function createNetworkEstimates({
     String(value || "")
       .trim()
       .toLowerCase() || null;
-  const live = (id) =>
+  const live = (id, networkId) =>
     entries.find(
       (entry) =>
-        entry.network === network() &&
+        entry.network === networkId &&
         entry.provider === provider(id) &&
         now() - entry.at >= 0 &&
         now() - entry.at < ESTIMATE_MAX_AGE_MS
     );
   return {
-    peek(id = null) {
-      return (live(id) || live(null))?.mbps ?? null;
+    peek(id = null, networkId = network()) {
+      return (live(id, networkId) || live(null, networkId))?.mbps ?? null;
     },
-    age(id = null) {
-      const entry = live(id);
+    age(id = null, networkId = network()) {
+      const entry = live(id, networkId);
       return entry ? Math.max(0, now() - entry.at) : null;
     },
-    record(mbps, id = null, { forced = false, passive = false } = {}) {
+    record(mbps, id = null, { forced = false, passive = false, networkId } = {}) {
       if (!Number.isFinite(mbps) || mbps <= 0) return;
-      const old = live(id);
+      networkId ??= network();
+      const old = live(id, networkId);
       const weight = passive ? 0.3 : 0.5;
       const blended =
         old && (passive || (!forced && old.thisSession))
           ? old.mbps * (1 - weight) + mbps * weight
           : mbps;
       const entry = {
-        network: network(),
+        network: networkId,
         provider: provider(id),
         mbps: Math.min(1000, Math.max(0.25, blended)),
         at: now(),
@@ -182,22 +185,52 @@ export function measureTransfer(
 }
 
 let inFlight = Promise.resolve();
+// Rendering only reads the session snapshot. Network changes retire it immediately; the
+// next probe samples identity again, and completion still checks the actual network.
+export function watchPlaybackNetwork(onChange) {
+  const api = globalThis.webapis?.network;
+  const changed = () => {
+    // Without an identifiable network, even memory-only estimates belong to the old link.
+    sessionNetwork = `session:${Date.now()}:${++anonymousNetworkRevision}`;
+    onChange();
+  };
+  let listener;
+  try {
+    listener = api?.addNetworkStateChangeListener(changed);
+  } catch {
+    /* Browser connectivity events remain available without Samsung's permission. */
+  }
+  globalThis.addEventListener?.("online", changed);
+  globalThis.addEventListener?.("offline", changed);
+  return () => {
+    globalThis.removeEventListener?.("online", changed);
+    globalThis.removeEventListener?.("offline", changed);
+    try {
+      if (listener != null) api.removeNetworkStateChangeListener(listener);
+    } catch {
+      /* A disconnected native service must not prevent route cleanup. */
+    }
+  };
+}
 // Each route/re-test owns a nonce and a cancellation scope. Addon arrivals do not restart it.
 export function createConnectionSession({
   target = () => null,
   onChange = () => {},
   estimates = PlaybackNetworkEstimates,
   measure = measureTransfer,
-  network = networkIdentity
+  network = networkIdentity,
+  prepare = playbackPaint,
+  watchNetwork = watchPlaybackNetwork
 } = {}) {
   let nonce = 0,
     settlement = { decision: -1, figure: -1 },
     controller,
     deadline,
     disposed = false,
-    providerId = null;
-  const state = () => ({ ...settlementState(settlement, nonce), mbps: estimates.peek(providerId) });
-  return {
+    mbps = null,
+    stopWatching;
+  const state = () => ({ ...settlementState(settlement, nonce), mbps });
+  const session = {
     state,
     start(force = false) {
       if (disposed) return;
@@ -206,19 +239,7 @@ export function createConnectionSession({
       clearTimeout(deadline);
       controller = playbackCancellation();
       const signal = controller.signal;
-      const probeTarget = target() || {};
-      providerId = probeTarget.providerId || null;
-      const startedNetwork = network();
       const current = () => !disposed && ask === nonce && !signal.aborted;
-      const inputs = () => ({
-        sourceUrl: probeTarget.url,
-        sourceHeaders: probeTarget.headers,
-        providerId,
-        sourceEstimateAgeMs: estimates.age(providerId),
-        lineEstimateAgeMs: estimates.age(),
-        isOffline: globalThis.navigator?.onLine === false,
-        force
-      });
       const finish = () => {
         if (current()) {
           clearTimeout(deadline);
@@ -226,10 +247,6 @@ export function createConnectionSession({
           onChange(state());
         }
       };
-      if (!measurementPlan(inputs())) {
-        finish();
-        return;
-      }
       deadline = setTimeout(() => {
         if (current()) {
           settlement = settleDeadline(settlement, ask);
@@ -237,25 +254,65 @@ export function createConnectionSession({
         }
       }, PROBE_DEADLINE_MS);
       onChange(state());
-      const run = async () => {
-        if (!current()) return;
-        const plan = measurementPlan(inputs());
-        if (!plan) return finish();
-        try {
-          const rate = await measure(plan, { signal });
-          if (current() && network() === startedNetwork && rate != null)
-            estimates.record(rate, plan.providerId, { forced: force });
-        } catch {
-          /* A failed/CORS-blocked measurement leaves an honest unknown. */
-        }
-        finish();
-      };
-      inFlight = inFlight.then(run, run);
+      // Native identity/target reads can block the TV's main thread. Paint the initial
+      // sheet/loading state first, then do them once per ask rather than per render.
+      void prepare()
+        .then(() => {
+          if (!current()) return;
+          stopWatching ??= watchNetwork(() => {
+            if (disposed) return;
+            mbps = null;
+            session.start(true);
+          });
+          const probeTarget = target() || {};
+          const providerId = probeTarget.providerId || null;
+          const startedNetwork = network();
+          mbps = estimates.peek(providerId, startedNetwork);
+          const inputs = () => ({
+            sourceUrl: probeTarget.url,
+            sourceHeaders: probeTarget.headers,
+            providerId,
+            sourceEstimateAgeMs: estimates.age(providerId, startedNetwork),
+            lineEstimateAgeMs: estimates.age(null, startedNetwork),
+            isOffline: globalThis.navigator?.onLine === false,
+            force
+          });
+          if (!measurementPlan(inputs())) return finish();
+          onChange(state());
+          const run = async () => {
+            if (!current()) return;
+            const plan = measurementPlan(inputs());
+            if (!plan) return finish();
+            let rate = null;
+            try {
+              rate = await measure(plan, { signal });
+            } catch {
+              /* A failed/CORS-blocked measurement leaves an honest unknown. */
+            }
+            if (current()) {
+              const completedNetwork = network();
+              if (completedNetwork !== startedNetwork) mbps = null;
+              else {
+                if (rate != null)
+                  estimates.record(rate, plan.providerId, {
+                    forced: force,
+                    networkId: startedNetwork
+                  });
+                mbps = estimates.peek(providerId, startedNetwork);
+              }
+            }
+            finish();
+          };
+          inFlight = inFlight.then(run, run);
+        })
+        .catch(() => finish());
     },
     dispose() {
       disposed = true;
       clearTimeout(deadline);
       controller?.abort();
+      stopWatching?.();
     }
   };
+  return session;
 }

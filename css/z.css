@@ -818,3 +818,53 @@
 .z-setup-footer .z-quiet-button {
   margin-right: 12px;
 }
+
+/* Classic keeps vanilla's complete cards, filters and virtualized navigation. The maintainer
+   chose the roomier z-render preview; no description lines or badge content are discarded. */
+#stream {
+  --z-source-row-gap: 24px;
+}
+
+#stream .stream-route-content {
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 0.65fr);
+}
+
+#stream .stream-route-list {
+  padding: 24px 48px 64px 24px;
+}
+
+#stream .stream-route-card-row {
+  margin-bottom: var(--z-source-row-gap);
+}
+
+#stream .stream-route-card {
+  padding: 26px 28px;
+  border-radius: 18px;
+  gap: 24px;
+}
+
+#stream .stream-route-card-heading {
+  font-size: 28px;
+  line-height: 38px;
+  letter-spacing: 0.2px;
+}
+
+#stream .stream-route-card-line {
+  font-size: 23px;
+  line-height: 31px;
+  letter-spacing: 0.2px;
+  margin-top: 6px;
+}
+
+#stream .stream-route-card-line.secondary {
+  margin-top: 0;
+}
+
+#stream .stream-route-card.focused {
+  /* Vanilla suppresses :focus outlines and forces a shadow with !important. */
+  outline: 3px solid var(--focus-color) !important;
+  outline-offset: 3px;
+  box-shadow: none !important;
+  transform: none;
+  background: var(--focus-bg);
+}
