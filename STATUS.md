@@ -2,16 +2,16 @@
 
 Last updated: 2026-10-27
 
-|                      |                                                                                                                                                                                                            |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                 |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                            |
-| Debug counter        | `DEBUG_BUILD=16`; configured signed WGT installed on Q60B; final checks/publication in progress. Debug 15 remains the published prerelease until completion below.                                         |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending. |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                         |
-| Verified             | `npm run test:z` **493/493**; focused Samsung/subtitle-language and loading-host browser checks pass. Debug 16 startup measurements and their limits are below.                                            |
-| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                          |
+|                      |                                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                   |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                  |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                              |
+| Debug counter        | `DEBUG_BUILD=16`; configured signed WGT installed/launched normally on Q60B. [debug-v1.2.9-z1.16](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.16) published WGT + IPK from `dda418c1`. |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.   |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                           |
+| Verified             | `npm run test:z` **493/493**; focused Samsung/subtitle-language and loading-host browser checks pass. Debug 16 startup measurements and their limits are below.                                              |
+| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                            |
 
 ## Debug 16: remaining startup refresh work (2026-10-27)
 
@@ -41,7 +41,12 @@ over 125 seconds, both preference flags applied and English audio/addon English 
 Loading/gate clear, with no spinner in 1,226 settled episode-2 samples. No manual preference write.
 
 Configured Tizen WGT and webOS IPK build; the signed WGT is installed. Production JS has no
-profiling/test globals. Code commit/publication and final normal relaunch will be recorded below.
+profiling/test globals. Code `dda418c1` is pushed. Debug publication
+[run 40552909171](https://github.com/Zokaper/NuvioZWeb/actions/runs/40552909171) **succeeded**;
+[debug 16](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.16) published WGT + IPK.
+After inspection, the app was relaunched normally and inspector forwarding removed; no manual
+preference writes. Public CI packages use the optional unconfigured fallback; the signed local
+WGT installed on the Q60B uses ignored configuration, as before.
 Signed configured WGT SHA-256: `484e41e1fadabd9ccce6785bdff920f2b4079d6a574026913a852d8234712d27`.
 
 ## Debug 15: measured responsiveness and roomier Classic (2026-10-27)
