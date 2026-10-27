@@ -11,7 +11,15 @@ Last updated: 2026-10-27
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **468/468**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
-| **Not** verified     | Debug 13 maintainer test confirms Classic playback, loading Back and Details/audio; stage stutter and Instant next-episode throbber reported. Debug 14 retest, full failover/countdown, early Tizen and webOS acceptance remain open.                                    |
+| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                                                                                        |
+
+## Maintainer's focused debug 14 retest passed (2026-10-27)
+
+On the Q60B, the maintainer repeated Instant playback of a series episode followed by manual
+Next Episode and confirmed: "it worked, next episode loaded just fine." This passes the requested
+picture/motion and spinner-dismissal retest and closes the reported persistent-throbber issue
+for this path. Loading smoothness, automatic countdown/failover and other TV families remain
+outside this focused result.
 
 ## Maintainer's debug 13 test and follow-up (2026-10-27)
 

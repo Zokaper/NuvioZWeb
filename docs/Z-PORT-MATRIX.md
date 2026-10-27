@@ -32,6 +32,10 @@ Last updated 2026-10-27.
 > and loading-state retirement; see the live handoff for actual installation/verification. Full
 > mode/failover/countdown acceptance remains open.
 >
+> **Maintainer's debug 14 focused retest:** Instant manual Next Episode passes on the Q60B; the
+> next episode loads normally, satisfying the requested picture/motion and spinner check. This
+> closes that reported path; smoothness and automatic countdown/failover remain open.
+>
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
 > AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a

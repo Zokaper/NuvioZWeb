@@ -5,6 +5,14 @@ Streamlined panel, and Instant Next Episode entering a player with a throbber. R
 episode resumed at 53 seconds. Classic playback, Back during loading and Details/audio menus
 worked. The oversized Classic list is deferred to the UI pass by request.
 
+## Maintainer's focused debug 14 retest passed (2026-10-27)
+
+On the Q60B, the maintainer repeated Instant playback of a series episode followed by manual
+Next Episode and confirmed: "it worked, next episode loaded just fine." This passes the requested
+picture/motion and spinner-dismissal retest and closes the reported persistent-throbber issue
+for this path. Loading smoothness, automatic countdown/failover and other TV families remain
+outside this focused result.
+
 ## What changed
 
 - Facts extraction and quality ranking run cooperatively in short turns. The complete snapshot
