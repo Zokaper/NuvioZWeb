@@ -63,3 +63,9 @@ The laptop lost power during the pass. On resumption, existing changes and trace
 the TV was woken using the locally cached network record, and the installed production bundle was
 checked to exclude the temporary profiling globals. Broader screen transitions remain in the UI
 pass; this chunk adds motion to the playback loading entrance and first-frame handoff.
+
+Code `0e547bf2` is published as [debug 13](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.13)
+(WGT + IPK), [run 40426439290](https://github.com/Zokaper/NuvioZWeb/actions/runs/40426439290).
+The public CI packages are unconfigured because the optional config secret is absent; the
+configured signed local WGT is the one installed on the Q60B. The app was relaunched in normal
+mode and the inspector forwarding removed after verification.

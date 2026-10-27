@@ -7,7 +7,7 @@ Last updated: 2026-10-27
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=13`; configured signed production WGT installed and instrumented on the Q60B, 2026-10-27. GitHub publication pending; debug 12 remains the last published build until recorded below.                                                                       |
+| Debug counter        | `DEBUG_BUILD=13`; [debug-v1.2.9-z1.13](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.13) published (WGT + IPK). Configured signed production WGT installed and instrumented on the Q60B, 2026-10-27.                                                 |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **459/459**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
@@ -39,7 +39,13 @@ acceptance is claimed. [Measurements and verification](docs/TV-PERFORMANCE-2026-
 
 The laptop shutdown interrupted verification; changes were recovered and checks completed after
 resumption. Temporary profiling code stays in ignored `.cache/tv-perf/` and is absent from the
-production bundle. TV settings were not changed. Publication is recorded below when complete.
+production bundle. TV settings were not changed. The app was relaunched in normal mode after profiling.
+
+**Committed / published:** code `0e547bf2` pushed on `claude/phase-10-trunk`; canonical status/P14
+`a8077aa59` pushed to `nuvio-z` main. [Debug 13](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.13)
+published WGT + IPK in [run 40426439290](https://github.com/Zokaper/NuvioZWeb/actions/runs/40426439290).
+The GitHub packages use the unconfigured fallback because the optional config secret is absent;
+the signed package installed on the Q60B uses ignored local configuration, as before.
 
 ## First maintainer test of debug 12 (2026-10-26)
 
