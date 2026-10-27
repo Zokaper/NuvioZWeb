@@ -2,16 +2,47 @@
 
 Last updated: 2026-10-27
 
-|                      |                                                                                                                                                                                                                       |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                            |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                           |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                       |
-| Debug counter        | `DEBUG_BUILD=15`; final configured signed WGT installed/launched normally on Q60B. [debug-v1.2.9-z1.15](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.15) published WGT + IPK from `aa09976e`.    |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.            |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                    |
-| Verified             | `npm run test:z` **480/480**; focused Samsung/subtitle-language checks and loading-host browser checks pass. Debug 15 Q60B measurements and Classic navigation are detailed below; full TV acceptance remains scoped. |
-| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                                     |
+|                      |                                                                                                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                 |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                            |
+| Debug counter        | `DEBUG_BUILD=16`; configured signed WGT installed on Q60B; final checks/publication in progress. Debug 15 remains the published prerelease until completion below.                                         |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending. |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                         |
+| Verified             | `npm run test:z` **493/493**; focused Samsung/subtitle-language and loading-host browser checks pass. Debug 16 startup measurements and their limits are below.                                            |
+| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                          |
+
+## Debug 16: remaining startup refresh work (2026-10-27)
+
+The maintainer authorized the remaining player-startup stutter work. The new Z-owned startup
+refresh coordinator shares native metadata/data/canplay/track-event requests after paint while
+Tizen AVPlay's existing strict audio gate is closed, before the first frame, with no track dialog
+open. Reentrant native refreshes get one later turn. Original matching, cache invalidation, gate
+release, deadlines and manual/other-engine behavior remain authoritative. Jobs are fenced by
+mount, source URL/index and native request token, and retired for cleanup/error/retry/exit.
+No upstream-owned file or visual layout changed.
+
+Q60B runtime comparison with coordination alone: 35 requests become 16 refreshes, longest 445 ms
+versus the measured debug 15 maximum of 2,045 ms. A formatted-label cache prototype showed no
+reliable benefit and was excluded. The configured signed debug 16 WGT is installed; first built-app
+inspection reaches English audio/addon English subtitles, both preference flags applied and
+loading/gate cleared. Its maximum measured refresh is 796 ms; a 1.63 s loading frame gap remains,
+so overall startup smoothness is not accepted. [Evidence and limits](docs/TV-STARTUP-DEBUG16-2026-10-27.md).
+
+493/493 tests, real subtitle-language/startup parity, focused Samsung seek/call-trace/direct/redirect
+checks and loading-host browser checks pass. Lint and configured Tizen/webOS packages pass.
+The built-app replay trace records loadedmetadata at **56.3 ms**, versus **3,928.3 ms** in the
+recorded debug 15 trace; largest traced task **1,075 ms** versus **4,651 ms**. Can-play/track-change
+callbacks can still take 0.45-0.50 s. These are individual inspector traces, not a total startup/FPS
+or maintainer smoothness claim. Manual native audio switching and restoration both pass with
+`rememberSelection: false`. Instant Next Episode reaches episode 2, clock advancing from 1.0 to
+over 125 seconds, both preference flags applied and English audio/addon English subtitles active.
+Loading/gate clear, with no spinner in 1,226 settled episode-2 samples. No manual preference write.
+
+Configured Tizen WGT and webOS IPK build; the signed WGT is installed. Production JS has no
+profiling/test globals. Code commit/publication and final normal relaunch will be recorded below.
+Signed configured WGT SHA-256: `484e41e1fadabd9ccce6785bdff920f2b4079d6a574026913a852d8234712d27`.
 
 ## Debug 15: measured responsiveness and roomier Classic (2026-10-27)
 

@@ -11,6 +11,8 @@ import {
 } from "../../js/core/z/playback/playbackSelectionContext.js";
 
 const boundaries = {
+  "environment.js":
+    "export const Environment = { isTizen: () => Boolean(globalThis.zHarness.controller.tizen) };",
   "playerController.js": "export const PlayerController = globalThis.zHarness.controller;",
   "routerState.js": "export const Router = globalThis.zHarness.router;",
   "playbackSettingsStore.js":
@@ -82,6 +84,9 @@ function player() {
     clearPlaybackStallGuard() {},
     releaseCurrentEngineFsStreamBestEffort() {},
     clearStartupError() {},
+    refreshTrackDialogs() {
+      calls.push("track refresh");
+    },
     playStreamCandidate(candidate, options) {
       calls.push({ id: candidate.id, options });
     },
@@ -120,6 +125,32 @@ function player() {
     }
   };
 }
+
+test("the actual Z player mount wires native gated refreshes and retires them at cleanup", async (ctx) => {
+  ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
+  zHarness.controller.tizen = true;
+  zHarness.controller.isUsingAvPlay = () => true;
+  const { screen, calls, params } = player();
+  try {
+    await screen.mount(params);
+    screen.startupAudioGateActive = true;
+    for (let i = 0; i < 4; i++) screen.refreshTrackDialogs();
+    assert.deepEqual(calls, []);
+    ctx.mock.timers.tick(50);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(calls, ["track refresh"]);
+    assert.equal(screen.startupAudioGateActive, true);
+    screen.refreshTrackDialogs();
+    screen.cleanup();
+    ctx.mock.timers.tick(50);
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(calls, ["track refresh"]);
+  } finally {
+    screen.cleanup();
+    delete zHarness.controller.tizen;
+    delete zHarness.controller.isUsingAvPlay;
+  }
+});
 
 test("duplicate fatal reports advance once, preserve the host and stop at the three-source budget", async (ctx) => {
   ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });

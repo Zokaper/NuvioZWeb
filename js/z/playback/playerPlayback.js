@@ -21,8 +21,14 @@ import { initialMeter, observeThroughput } from "../../core/z/network/networkThr
 import { PlaybackNetworkEstimates, playbackCancellation } from "./playbackNetwork.js";
 import { proxyHeaders } from "../../core/z/sources/streamTraits.js";
 import { describe } from "../../core/z/playback/playbackSourceSelector.js";
+import { Environment } from "../../platform/environment.js";
+import { withStartupTrackRefresh } from "./startupTrackRefresh.js";
 
 export function withZPlayerPlayback(vanilla) {
+  vanilla = withStartupTrackRefresh(vanilla, {
+    isNative: () => Environment.isTizen() && PlayerController.isUsingAvPlay?.(),
+    requestToken: () => PlayerController.playRequestToken
+  });
   return withZNextEpisodePlayback(
     {
       ...vanilla,

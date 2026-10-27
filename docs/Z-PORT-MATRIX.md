@@ -41,6 +41,11 @@ Last updated 2026-10-27.
 > the roomier Classic source-list preview. TMDB enhancement defaults on for absent values while
 > preserving saved/synced opt-outs. See the live handoff for installed checks and acceptance limits.
 >
+> **Debug 16:** repeated Tizen AVPlay startup track refreshes share a paint turn while the
+> existing strict audio gate is closed. Manual dialogs and other engines retain synchronous
+> refreshes; matching/gates are unchanged. Installed checks and remaining startup gaps are in
+> the live handoff; no maintainer smoothness acceptance is claimed.
+>
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
 > AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a
