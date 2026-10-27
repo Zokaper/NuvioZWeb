@@ -1,13 +1,13 @@
 # NuvioZWeb Status
 
-Last updated: 2026-10-27
+Last updated: 2026-10-28
 
 |                      |                                                                                                                                                                                                            |
 | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                 |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                            |
-| Debug counter        | `DEBUG_BUILD=18`; configured signed WGT installed/relaunched normally on Q60B; debug publication pending.                                                                                                  |
+| Debug counter        | `DEBUG_BUILD=18`; configured signed WGT installed/relaunched normally on Q60B. [debug 18](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.18) published WGT + IPK from `48e64261`.       |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending. |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                         |
 | Verified             | `npm run test:z` **509/509**; lint, Home poster-settings and configured WGT/IPK packaging pass; installed Q60B navigation/landing checks below.                                                            |
@@ -36,9 +36,17 @@ records 32.5 ms/104.9 ms, with handler outliers. Different-title landing, horizo
 sidebar return and Details/Back all pass model/DOM/loaded-asset/visible-focus checks. In that
 landing, both artwork source changes occur after input. A 336.6 ms initial gap with no observed
 hero source change and a 228.0 ms final-upload gap remain. No overall smoothness claim.
-After inspection the app was relaunched normally and inspector forwarding removed. Publication is pending at this checkpoint.
+After inspection the app was relaunched normally and inspector forwarding removed.
+Code `48e64261` is pushed. Publication
+[run 40568050178](https://github.com/Zokaper/NuvioZWeb/actions/runs/40568050178) **succeeded**;
+[debug 18](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.18) published WGT + IPK.
+CI uses the optional unconfigured fallback; the configured signed local WGT is installed on
+the Q60B. Production JS has no profiling/test globals. Canonical handoff/TV2/V9/patch notes
+are pushed to `nuvio-z` main (`92b277a17`) and `codex/tv-step-3-2-docs` (`746edef95`).
 The new upstream import/decorator seam is `homeScreen.js`; canonical TV2/V9 and patch-ledger
-updates belong to this change. No Kotlin, playback policy or saved settings changed.
+updates are committed and pushed. No Kotlin, playback policy or saved settings changed.
+Publication was confirmed on 2026-10-28 without contacting the physical TV. The maintainer
+asked to leave the TV alone overnight; further hardware checks await renewed authorization.
 [Evidence, tradeoff and limits](docs/TV-HOME-ARTWORK-DEBUG18-2026-10-27.md).
 
 ## Debug 17: bounded Tizen Home catalogue appends (2026-10-27)
