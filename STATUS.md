@@ -7,7 +7,7 @@ Last updated: 2026-10-27
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                 |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                            |
-| Debug counter        | `DEBUG_BUILD=17`; configured signed WGT installed on Q60B for Home navigation verification; publication pending.                                                                                           |
+| Debug counter        | `DEBUG_BUILD=17`; configured signed WGT installed/relaunched normally on Q60B. [debug 17](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.17) published WGT + IPK from `e751cc2c`.       |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending. |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                         |
 | Verified             | `npm run test:z` **497/497**; lint and configured Tizen/webOS packaging pass. Q60B Home append measurements and debug 16 playback checks are below.                                                        |
@@ -32,7 +32,15 @@ The native-focus ordering prototype merely moved layout work and was excluded.
 Installed-build long traversal reaches card index 95 with 108 mounted cards and 143 cached
 items, after a provider-page extension. Mounted items remain ordered and unique. Details/Back
 restores index 95 with visible focus; 95 left presses return to zero. The earlier 50-card
-round trip also passes. Publication is pending at this checkpoint.
+round trip also passes.
+
+Code `e751cc2c` is pushed. Publication [run 40562246263](https://github.com/Zokaper/NuvioZWeb/actions/runs/40562246263)
+**succeeded**; [debug 17](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.17)
+published WGT + IPK. CI uses the optional unconfigured fallback; the configured signed local WGT
+is the build installed on the Q60B. Production JS has no test/profiling globals. After inspection
+the app was relaunched normally and inspector forwarding removed. Canonical feature TV1,
+inherited cost V8, patch seam and handoff are committed/pushed on `nuvio-z` main and
+`codex/tv-step-3-2-docs`; no Kotlin code changed. Source-loading stutter remains accepted for now.
 
 ## Agent's debug 16 playback follow-up (2026-10-27)
 
