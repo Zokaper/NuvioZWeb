@@ -7,7 +7,7 @@ Last updated: 2026-10-27
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=14`; configured signed production WGT installed/launched on the Q60B, 2026-10-27. Publication pending final verification.                                                                                                                                   |
+| Debug counter        | `DEBUG_BUILD=14`; configured signed production WGT installed/launched on the Q60B, 2026-10-27. [debug-v1.2.9-z1.14](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.14) published (WGT + IPK).                                                         |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
 | Verified             | `npm run test:z` **468/468**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
@@ -35,7 +35,22 @@ until installed-build checks and a later combined maintainer test establish it.
 
 PC: 468/468 tests pass, including pending catalogue/cancellation, stable cooperative sorting,
 native-sample invalidation on episode/prepare/seek, and first-frame loading-state retirement.
-Configured production build, lint, formatting, browser loading checks and both platform packages pass. The signed WGT is installed/launched; publication follows final device verification. [Details and limits](docs/TV-PLAYBACK-DEBUG14-2026-10-27.md).
+Configured production build, lint, formatting, browser loading checks and both platform packages pass. The signed WGT is installed/launched; final instrumented verification is below. [Details and limits](docs/TV-PLAYBACK-DEBUG14-2026-10-27.md).
+
+**Final installed-build check:** Instant starts episode 1 and switches to episode 2; the latter
+advances past 36 seconds with loading false, the shared host removed, the native loading overlay
+hidden and no presented-frame spinner in the 430-sample observation. Initial source calculation
+and unchanged player facts are cached/cooperative as appropriate. A runtime-only Streamlined
+branch check renders all 19 choices on the actual TV; saved playback mode remains Instant.
+Native startup still creates multi-second main-thread gaps, and connection-state rendering has
+remaining synchronous cost. This is not end-to-end smoothness or full persistent-spinner acceptance.
+Profiling globals are absent from the production bundle. The app was relaunched normally and
+the inspector forwarding removed. No TV setting was changed.
+
+Code `eefeb669` is pushed. Debug 14 publication was dispatched in
+[run 40507637986](https://github.com/Zokaper/NuvioZWeb/actions/runs/40507637986).
+Canonical handoff/P12/P14 and the new upstream sampling seam are committed as `877fafc0c`, pushed
+to `nuvio-z` main and `codex/tv-step-3-2-docs`. Run succeeded and [debug 14](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.14) published WGT + IPK. Public CI packages use the unconfigured fallback; the configured signed local build is installed on the Q60B.
 
 ## Loading stutter and playback motion (2026-10-27, debug 13)
 

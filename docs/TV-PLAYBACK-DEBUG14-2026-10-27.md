@@ -34,7 +34,7 @@ does not claim to eliminate every Samsung startup pause or establish its upstrea
 
 Episode inspection before the handoff change caught advancing playback while the loading state
 was still true. It did **not** conclusively reproduce the maintainer's persistent spinner. An
-installed debug 14 Instant episode switch reached advancing video, with the loading flag false,
+installed debug 14 Instant episode switch reached an advancing playback clock, with the loading flag false,
 both loading overlays dismissed and no presented-frame spinner in the observation sample.
 This is instrumented verification, not the maintainer's physical picture/smoothness acceptance.
 
