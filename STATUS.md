@@ -11,7 +11,26 @@ Last updated: 2026-10-27
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.   |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                           |
 | Verified             | `npm run test:z` **493/493**; focused Samsung/subtitle-language and loading-host browser checks pass. Debug 16 startup measurements and their limits are below.                                              |
-| Acceptance           | Maintainer reports debug 16 looks good; residual source-loading stutter is acceptable for now. Automatic countdown/failover, early Tizen and webOS acceptance remain open.                                   |
+| Acceptance           | Maintainer accepts residual stutter for now. Q60B automatic-origin countdown/Back and controlled failover pass; natural autoplay and other TV families remain open.                                          |
+
+## Agent's debug 16 playback follow-up (2026-10-27)
+
+The maintainer cannot test playback now and authorized agent testing. On the installed Q60B
+debug 16, the automatic-origin path counts down 3/2/1 while episode 1 keeps advancing, then opens
+episode 2 with loading/gate cleared and preferred audio/subtitle flags applied. Remote Back
+cancels episode 2's countdown to episode 3; episode 2 continues for six seconds with no late swap.
+Both controlled HTTP 404 cases recover to a working source: ordinary side-probe rejection and
+a native-only-header case producing AVPlay `PLAYER_ERROR_CONNECTION_FAILED`. Duplicate error
+reports advance the chain only once. No production code or saved settings changed.
+
+The automatic path was entered through `playNextEpisode({ userInitiated: false })`; this does
+not verify natural threshold triggering. Failover fixtures seed runtime route candidates; they
+do not verify source discovery/ranking or every provider failure. Physical picture/sound,
+Classic/Streamlined automatic paths, chain exhaustion/manual escape on hardware and other TV
+families remain separate. [Evidence and limits](docs/TV-PLAYBACK-DEBUG16-FOLLOWUP-2026-10-27.md).
+The temporary HTTP fixture is closed, the TV is relaunched normally and inspector forwarding
+removed. Debug 16 remains current. Independent navigation performance and UI preview work can
+proceed without another maintainer playback test.
 
 ## Maintainer's debug 16 feedback (2026-10-27)
 

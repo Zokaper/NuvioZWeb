@@ -44,7 +44,11 @@ Last updated 2026-10-27.
 > **Debug 16:** repeated Tizen AVPlay startup track refreshes share a paint turn while the
 > existing strict audio gate is closed. Manual dialogs and other engines retain synchronous
 > refreshes; matching/gates are unchanged. Installed checks and remaining startup gaps are in
-> the live handoff; no maintainer smoothness acceptance is claimed.
+> the live handoff. The maintainer subsequently reports that it looks good, with residual source-loading
+> stutter acceptable for now. Q60B agent checks pass for automatic-origin countdown, remote Back
+> cancellation and controlled dead-source failover, including an AVPlay connection error. Natural
+> autoplay threshold triggering and other TV families remain open; see
+> `docs/TV-PLAYBACK-DEBUG16-FOLLOWUP-2026-10-27.md` for the exact scope.
 >
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
