@@ -28,9 +28,10 @@ import { createHomeScreenMethods27 } from "./homeScreenMethods-27-enrich-continu
 import { createHomeScreenMethods28 } from "./homeScreenMethods-28-on-key-down.js";
 import { createHomeScreenMethods29 } from "./homeScreenMethods-29-setup-modern-track-scroll-pagination.js";
 import { createHomeScreenMethods30 } from "./homeScreenMethods-30-cleanup.js";
+import { withSettledHomeArtwork } from "../../../z/home/settledArtwork.js";
 
 export * from "./homeScreenContext.js";
-export const HomeScreen = {
+export const HomeScreen = withSettledHomeArtwork({
   ...createHomeScreenMethods01(),
   ...createHomeScreenMethods02(),
   ...createHomeScreenMethods03(),
@@ -61,4 +62,4 @@ export const HomeScreen = {
   ...createHomeScreenMethods28(),
   ...createHomeScreenMethods29(),
   ...createHomeScreenMethods30()
-};
+});

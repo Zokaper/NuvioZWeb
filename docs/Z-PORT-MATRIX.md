@@ -55,6 +55,12 @@ Last updated 2026-10-27.
 > Browser/webOS retain their batch size. Overall navigation/frame budgets remain open; see
 > `docs/TV-HOME-DEBUG17-2026-10-27.md` and the live handoff for installed verification.
 >
+> **Debug 18 Home artwork:** ordinary vertical hero scheduling on eligible Tizen Home uses an
+> 800 ms minimum while the existing background-input deferral is active. The original scheduler
+> and metadata/asset pipeline remain; horizontal/immediate and other-runtime timing is retained.
+> See `docs/TV-HOME-ARTWORK-DEBUG18-2026-10-27.md` and the handoff for measurements and the
+> settled-preview latency tradeoff. Individual uploads and physical smoothness remain open.
+>
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
 > AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a

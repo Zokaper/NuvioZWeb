@@ -7,11 +7,39 @@ Last updated: 2026-10-27
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                 |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                            |
-| Debug counter        | `DEBUG_BUILD=17`; configured signed WGT installed/relaunched normally on Q60B. [debug 17](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.17) published WGT + IPK from `e751cc2c`.       |
+| Debug counter        | `DEBUG_BUILD=18`; configured signed WGT installed/relaunched normally on Q60B; debug publication pending.                                                                                                  |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending. |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                         |
-| Verified             | `npm run test:z` **497/497**; lint and configured Tizen/webOS packaging pass. Q60B Home append measurements and debug 16 playback checks are below.                                                        |
+| Verified             | `npm run test:z` **509/509**; lint, Home poster-settings and configured WGT/IPK packaging pass; installed Q60B navigation/landing checks below.                                                            |
 | Acceptance           | Maintainer accepts residual stutter for now. Q60B automatic-origin countdown/Back and controlled failover pass; natural autoplay and other TV families remain open.                                        |
+
+## Debug 18: settled vertical Home artwork (2026-10-27)
+
+The maintainer authorized the remaining image/compositing pass. Q60B light tracing ties several
+large pauses to hero backdrop/logo changes; main-renderer CompositeLayers reaches 243.1 ms.
+The Z decorator scopes an 800 ms minimum to vanilla's vertical focus-delay lookup on modern
+Tizen Home while its existing background-input deferral is active. The original timer, preload,
+focus/cancellation and metadata code still own the preview. Horizontal/immediate/other-runtime
+paths retain their timing; artwork, colors, dimensions and fades remain unchanged. No extra
+asynchronous coordinator or deferred model is shipped. The tradeoff is about 350 ms of additional
+ordinary vertical-preview latency on this set, avoiding intermediate scene uploads during input.
+
+A warm 38-key comparison improves sampled frame-gap p95 from 39.4 to 24.6 ms, maximum from
+335.3 to 279.2 ms and gaps above 100 ms from 11 to two in the installed build. These are
+individual runs; the round trip returns to its original title. Horizontal continuation,
+sidebar return and Details/Back reach matching model/DOM identity with unique visible focus.
+
+509 tests, lint, focused Home poster-settings and configured WGT/IPK packaging pass. The signed
+debug 18 WGT is installed on the Q60B. Its warm 38-key run records 24.6 ms frame-gap p95, 279.2 ms
+maximum and two gaps above 100 ms; key-handler p95 is 18.3 ms. The earlier first installed run
+records 32.5 ms/104.9 ms, with handler outliers. Different-title landing, horizontal continuation,
+sidebar return and Details/Back all pass model/DOM/loaded-asset/visible-focus checks. In that
+landing, both artwork source changes occur after input. A 336.6 ms initial gap with no observed
+hero source change and a 228.0 ms final-upload gap remain. No overall smoothness claim.
+After inspection the app was relaunched normally and inspector forwarding removed. Publication is pending at this checkpoint.
+The new upstream import/decorator seam is `homeScreen.js`; canonical TV2/V9 and patch-ledger
+updates belong to this change. No Kotlin, playback policy or saved settings changed.
+[Evidence, tradeoff and limits](docs/TV-HOME-ARTWORK-DEBUG18-2026-10-27.md).
 
 ## Debug 17: bounded Tizen Home catalogue appends (2026-10-27)
 
