@@ -11,7 +11,16 @@ Last updated: 2026-10-27
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.   |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                           |
 | Verified             | `npm run test:z` **493/493**; focused Samsung/subtitle-language and loading-host browser checks pass. Debug 16 startup measurements and their limits are below.                                              |
-| **Not** verified     | Q60B debug 14 Instant manual Next Episode passes. Loading smoothness, automatic countdown/failover, early Tizen and webOS acceptance remain open.                                                            |
+| Acceptance           | Maintainer reports debug 16 looks good; residual source-loading stutter is acceptable for now. Automatic countdown/failover, early Tizen and webOS acceptance remain open.                                   |
+
+## Maintainer's debug 16 feedback (2026-10-27)
+
+After testing the installed build, the maintainer reports: "all looks good, but there still is
+stutter on source loading. but i think atp its mostly fine." Source-loading stutter remains a
+known limitation, acceptable for now; further startup tuning is deferred so work can move on.
+This is not a claim of stutter-free loading or a mode-by-mode acceptance matrix. Automatic
+next-episode countdown and dead-source failover are the next focused TV checks; this report
+does not specifically verify either, early Tizen or webOS.
 
 ## Debug 16: remaining startup refresh work (2026-10-27)
 
