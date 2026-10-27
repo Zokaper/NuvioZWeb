@@ -1,17 +1,45 @@
 # NuvioZWeb Status
 
-Last updated: 2026-10-26
+Last updated: 2026-10-27
 
 |                      |                                                                                                                                                                                                                                                                          |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=12`; [debug-v1.2.9-z1.12](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.12) published (WGT + IPK). Configured local signed WGT installed and launched on the Q60B, 2026-10-26.                                                          |
+| Debug counter        | `DEBUG_BUILD=13`; configured signed production WGT installed and instrumented on the Q60B, 2026-10-27. GitHub publication pending; debug 12 remains the last published build until recorded below.                                                                       |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
-| Verified             | `npm run test:z` **457/457**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
+| Verified             | `npm run test:z` **459/459**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
 | **Not** verified     | First maintainer test of installed debug 12 reported loading stutter and player issues (below). Full mode/failover/next-episode acceptance is not established; early Tizen and webOS remain open. Keep spaced, combined TV test chunks.                                  |
+
+## Loading stutter and playback motion (2026-10-27, debug 13)
+
+The maintainer clarified that overall TV performance is good; the priority is smooth transitions
+and the loading stutter, with only measured, obvious performance fixes. No new maintainer
+acceptance is claimed. [Measurements and verification](docs/TV-PERFORMANCE-2026-10-27.md).
+
+- On the Q60B's real 126-source catalogue, repeated quality-option calculation cost **539-675 ms**
+  per call. A per-play source-facts/options cache reduces unchanged calls to **0.055-0.080 ms** in
+  the installed production build. New sources/prepared records, ordering and context invalidate it.
+  The initial calculation remains synchronous (779 ms in that installed-build sample).
+- Loading-host/title/progress nodes persist when stage, facts or escape change. Zero full-host
+  replacements during the sampled handoff, versus three before. Title/band arrive with Kotlin's
+  stagger, then a 300 ms first-frame-gated fade reveals video. Back/manual exits are immediate;
+  interrupted exits and reduced motion are covered.
+- **PC:** 459/459 tests; real-module browser lifecycle/visual checks; lint, formatting, configured
+  production build and both packages pass. No new upstream-owned patch seam or dependency.
+- **Q60B:** configured signed code installed/launched, Instant discovery reaches presented video;
+  inspector observes persistent nodes, entrance animations and exit only after first frame.
+  Not a maintainer smoothness verdict or a full mode/failover/next-episode acceptance pass.
+- **Still open:** initial catalogue calculation and multi-second native startup stalls. CPU stacks
+  show substantial synchronous AVPlay polling, but this chunk does not fix or conclusively assign
+  every startup pause. Broad screen transitions remain part of the UI pass. TMDB defaults and the
+  Details/audio review stay queued, with the maintainer to be asked at that review.
+
+The laptop shutdown interrupted verification; changes were recovered and checks completed after
+resumption. Temporary profiling code stays in ignored `.cache/tv-perf/` and is absent from the
+production bundle. TV settings were not changed. Publication is recorded below when complete.
 
 ## First maintainer test of debug 12 (2026-10-26)
 

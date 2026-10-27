@@ -6,8 +6,8 @@ import { TizenCapabilities } from "../../platform/tizen/tizenCapabilities.js";
 import { playbackSelectionContextOf } from "../../core/z/playback/playbackSelectionContextFactory.js";
 import { automaticEmbeddedSubtitleLanguage } from "../../core/z/playback/playbackSelectionContext.js";
 import { decide, createRouteInputs, PLAYBACK_ROUTE_DECISION } from "../../core/z/playback/playbackModeRouter.js";
-import { buildQualityOptions, stickyAffordable } from "../../core/z/playback/playbackQualityOptions.js";
-import { extractSourceFacts } from "../../core/z/sources/sourceFacts.js";
+import { stickyAffordable } from "../../core/z/playback/playbackQualityOptions.js";
+import { createPlaybackOptionsCache } from "../../core/z/playback/playbackOptionsCache.js";
 import {
   selectSource,
   SELECTION_RESULT,
@@ -66,10 +66,14 @@ export function withZStreamPlayback(vanilla) {
         createRouteInputs({ mode: ZPlaybackSettingsStore.get().playbackMode, manualSelection: Boolean(params.manualSelection) })
       );
       this.zContext = selectionContext(params);
+      this.zQualityOptions = createPlaybackOptionsCache();
       this.zSelectionStartedAt = Date.now();
       this.zNavigating = false;
       this.zConnection = createConnectionSession({
-        target: () => (this.zOptions()[0] ? probeTarget(this.zOptions()[0], this.zContext) : null),
+        target: () => {
+          const best = this.zOptions()[0];
+          return best ? probeTarget(best, this.zContext) : null;
+        },
         onChange: () => {
           if (Router.getCurrent() !== "stream" || this.zManual || this.zNavigating) return;
           // A fresh cached estimate can settle synchronously inside zTryQualitySelection.
@@ -104,10 +108,8 @@ export function withZStreamPlayback(vanilla) {
       );
     },
     zOptions() {
-      return buildQualityOptions(
-        (this.streams || []).map((stream) => ({ stream, facts: extractSourceFacts(stream) })),
-        this.zContext
-      );
+      this.zQualityOptions ??= createPlaybackOptionsCache();
+      return this.zQualityOptions(this.streams || [], this.zContext);
     },
     render() {
       this.cancelScheduledRender();
@@ -325,6 +327,7 @@ export function withZStreamPlayback(vanilla) {
     cleanup() {
       clearInterval(this.zSelectionTimer);
       this.zConnection?.dispose();
+      this.zQualityOptions = null;
       if (!this.zAutomaticPlayback || !this.zNavigating) hidePlaybackLoading();
       return vanilla.cleanup.call(this);
     }

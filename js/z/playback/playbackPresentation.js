@@ -31,16 +31,34 @@ export function cssImage(url, scrim = null) {
 const LOADING_SCRIM =
   "linear-gradient(180deg, rgba(0,0,0,0.3), rgba(0,0,0,0.6) 33%, rgba(0,0,0,0.8) 66%, rgba(0,0,0,0.9))";
 let host = null;
-// Compared against what was last written, not host.innerHTML: the browser re-serializes markup,
-// so that comparison never matched and the whole screen was rebuilt on every 250 ms tick.
-let hostMarkup = null;
+let hostParts = new Map();
 let hostImage = null;
+let exitingHost = null;
+let exitTimer = null;
+function clearExit() {
+  clearTimeout(exitTimer);
+  exitingHost?.remove();
+  exitingHost = null;
+}
+function updatePart(selector, markup) {
+  if (hostParts.get(selector) === markup) return;
+  host.querySelector(selector).innerHTML = markup;
+  hostParts.set(selector, markup);
+}
 // A logo that failed to load falls back to the title for the rest of the app session.
 const failedLogos = new Set();
-export function hidePlaybackLoading() {
-  host?.remove();
+export function hidePlaybackLoading({ afterFirstFrame = false } = {}) {
+  if (!afterFirstFrame) clearExit();
+  if (!host) return;
+  if (afterFirstFrame && !globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+    clearExit();
+    exitingHost = host;
+    exitingHost.classList.add("z-loading-exit");
+    // Only a decoded frame may uncover the player. Cancellation/manual exits remain immediate.
+    exitTimer = setTimeout(clearExit, 300);
+  } else host.remove();
   host = null;
-  hostMarkup = null;
+  hostParts = new Map();
   hostImage = null;
 }
 export function showPlaybackLoading({
@@ -55,9 +73,18 @@ export function showPlaybackLoading({
   onManual
 }) {
   if (!host) {
+    clearExit();
     host = document.createElement("div");
     host.className = "z-playback-loading";
     host.setAttribute("role", "status");
+    // Keep these nodes for the whole play. Stage/facts/escape updates must not restart the
+    // progress animation, logo decoding or entrance motion during the player handoff.
+    host.innerHTML = `<div class="z-loading-title"><div></div></div>
+      <div class="z-loading-band">
+        <div class="z-loading-stage"></div><div class="z-loading-facts"></div>
+        <div class="z-loading-provider"></div><div class="z-loading-escape"></div>
+        <div class="z-progress-line"><span></span></div>
+      </div>`;
     document.body.appendChild(host);
   }
   const canEscape = exhausted || shouldOfferManualEscape(attempt, Date.now() - startedAt);
@@ -103,25 +130,39 @@ export function showPlaybackLoading({
       : t("playback_progress_source_failed", [failure.label || "Source"])
     : "";
   const provider = providerLine(facts);
-  const markup = `<div class="z-loading-title"><div>${heading}${subtitle ? `<p class="z-loading-subtitle">${escapeHtml(subtitle)}</p>` : ""}</div></div>
-    <div class="z-loading-band">
-      <div class="z-loading-stage${failureText ? " is-failed" : ""}">${escapeHtml(stage)}${failureText ? `<small>${escapeHtml(failureText)}</small>` : ""}</div>
-      <div class="z-loading-facts">${slots.map((slot, index) => `<div><small>${escapeHtml(t(`playback_fact_${labels[index]}`))}</small><strong${slot.value == null ? ' class="is-unknown"' : ""}>${escapeHtml(slot.value ?? UNKNOWN_FACT)}</strong></div>`).join("")}</div>
-      ${provider ? `<div class="z-loading-provider">${escapeHtml(provider)}</div>` : ""}
-      <div class="z-loading-escape"><span class="z-release-name">${escapeHtml(releaseNameOf(facts) || "")}</span>${canEscape ? `<button class="z-quiet-button focusable focused" data-z-manual>${escapeHtml(t("playback_quality_manual"))}</button>` : ""}</div>
-      <div class="z-progress-line${exhausted ? " is-stopped" : ""}"><span></span></div>
-    </div>`;
-  if (hostMarkup !== markup) {
-    host.innerHTML = markup;
-    hostMarkup = markup;
-    const logoImage = host.querySelector("[data-z-logo]");
-    if (logoImage)
-      logoImage.onerror = () => {
-        failedLogos.add(logo);
-        logoImage.outerHTML = title ? `<h1>${escapeHtml(title)}</h1>` : "";
-        hostMarkup = null;
-      };
-  }
+  updatePart(
+    ".z-loading-title > div",
+    `${heading}${subtitle ? `<p class="z-loading-subtitle">${escapeHtml(subtitle)}</p>` : ""}`
+  );
+  updatePart(
+    ".z-loading-stage",
+    `${escapeHtml(stage)}${failureText ? `<small>${escapeHtml(failureText)}</small>` : ""}`
+  );
+  host.querySelector(".z-loading-stage").classList.toggle("is-failed", Boolean(failureText));
+  updatePart(
+    ".z-loading-facts",
+    slots
+      .map(
+        (slot, index) =>
+          `<div><small>${escapeHtml(t(`playback_fact_${labels[index]}`))}</small><strong${slot.value == null ? ' class="is-unknown"' : ""}>${escapeHtml(slot.value ?? UNKNOWN_FACT)}</strong></div>`
+      )
+      .join("")
+  );
+  updatePart(".z-loading-provider", escapeHtml(provider || ""));
+  host.querySelector(".z-loading-provider").hidden = !provider;
+  updatePart(
+    ".z-loading-escape",
+    `<span class="z-release-name">${escapeHtml(releaseNameOf(facts) || "")}</span>${canEscape ? `<button class="z-quiet-button focusable focused" data-z-manual>${escapeHtml(t("playback_quality_manual"))}</button>` : ""}`
+  );
+  host.querySelector(".z-progress-line").classList.toggle("is-stopped", exhausted);
+  const logoImage = host.querySelector("[data-z-logo]");
+  if (logoImage)
+    logoImage.onerror = () => {
+      if (!host?.contains(logoImage)) return;
+      failedLogos.add(logo);
+      logoImage.outerHTML = title ? `<h1>${escapeHtml(title)}</h1>` : "";
+      hostParts.delete(".z-loading-title > div");
+    };
   // Ownership changes at handoff even when every visible word stays identical.
   const button = host.querySelector("[data-z-manual]");
   if (button) button.onclick = onManual;

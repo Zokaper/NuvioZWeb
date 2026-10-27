@@ -78,7 +78,7 @@ export function withZPlayerPlayback(vanilla) {
         if (this.hasPresentedPlaybackFrame && !this.zRetrying && !this.zExhausted) {
           this.zHadFrame = true;
           this.zProbeController?.abort();
-          hidePlaybackLoading();
+          hidePlaybackLoading({ afterFirstFrame: true });
           if (this.zLaunch.mode === "INSTANT" && !this.zInstantAnnounced) {
             this.zInstantAnnounced = true;
             this.zInstantChangeUntil = Date.now() + 6000;

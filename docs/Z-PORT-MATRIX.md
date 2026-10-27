@@ -7,7 +7,7 @@ gets re-derived as missing work if nobody writes it down.
 Canonical feature ledger: `nuvio-z/Docs/Z-FEATURES.md`. The doctrine: `nuvio-z/Docs/UPSTREAM.md`.
 The live phase ledger for the port in progress: `PLAYBACK_MODES_WEB_PLAN.md`.
 
-Last updated 2026-10-26.
+Last updated 2026-10-27.
 
 > **Current 1.2.9 line (2026-10-26).** Stage 2 now implements all three modes, settings/sync,
 > per-profile first-launch and cross-family import, the persistent loading host and capped failure
@@ -19,6 +19,11 @@ Last updated 2026-10-26.
 > establish acceptance of every mode, failover or next-episode path. **The older per-row states below describe the archived
 > 0.3.40 line** unless covered by the current handoff. Do not resurrect the old phase-by-phase TV
 > gates: the maintainer explicitly replaced those with spaced test chunks on 2026-10-26.
+>
+> **Debug 13 (2026-10-27):** measured repeated quality calculation is cached; loading nodes persist
+> through handoff, with a staggered entrance and first-frame fade. Installed Q60B inspector checks
+> reach real video and verify continuity/motion; maintainer smoothness acceptance remains open.
+> Initial calculation and native startup stalls remain. See `docs/TV-PERFORMANCE-2026-10-27.md`.
 >
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;

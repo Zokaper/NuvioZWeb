@@ -471,6 +471,44 @@
   background-size: cover;
 }
 
+/* Kotlin's one entrance per play: the backdrop stays still; title then facts arrive over it.
+   These nodes survive stage changes and retries, so neither animation can restart at handoff. */
+.z-playback-loading .z-loading-title > div {
+  animation: z-loading-content-enter 220ms 40ms ease-out both;
+}
+
+.z-playback-loading .z-loading-band {
+  animation: z-loading-content-enter 180ms 80ms ease-out both;
+}
+
+.z-playback-loading.z-loading-exit {
+  pointer-events: none;
+  animation: z-loading-exit 300ms ease-out both;
+}
+
+@keyframes z-loading-content-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes z-loading-exit {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .z-playback-loading .z-loading-title > div,
+  .z-playback-loading .z-loading-band,
+  .z-playback-loading.z-loading-exit {
+    animation: none;
+  }
+}
+
 /* The logo on the optical centre; the band grows upward from the bottom and cannot push it. */
 .z-loading-title {
   position: absolute;
