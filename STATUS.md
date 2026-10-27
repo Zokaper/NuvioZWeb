@@ -7,7 +7,7 @@ Last updated: 2026-10-27
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                            |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                           |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                       |
-| Debug counter        | `DEBUG_BUILD=15`; configured packages built; final signed Q60B inspection and debug publication in progress below. Debug 14 remains the published prerelease until that completes.                                    |
+| Debug counter        | `DEBUG_BUILD=15`; final configured signed WGT installed/launched normally on Q60B. [debug-v1.2.9-z1.15](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.15) published WGT + IPK from `aa09976e`.    |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.            |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                    |
 | Verified             | `npm run test:z` **480/480**; focused Samsung/subtitle-language checks and loading-host browser checks pass. Debug 15 Q60B measurements and Classic navigation are detailed below; full TV acceptance remains scoped. |
@@ -36,11 +36,35 @@ passes. This does not yet establish end-to-end loading smoothness or eliminate e
 TMDB enhancement now defaults on for missing/null values; saved/synced opt-outs and the separate
 modern Home default are preserved. This adds two upstream-owned patch sites: the TMDB normalizer
 and the existing player language helper. Both are documented in the canonical patch ledger; the
-virtual-row adaptation stays in the existing Z decorator. No Kotlin code or TV preference changed.
+virtual-row adaptation stays in the existing Z decorator. No Kotlin code or manual TV settings write.
 
 480/480 tests, focused Samsung seek/loading/sequencing/call-trace/direct/redirect checks,
 subtitle-language parity, browser loading lifecycle, lint and configured packages pass. Final
-signed-build inspection and publication are in progress. [Measurements, design and limits](docs/TV-PLAYBACK-DEBUG15-2026-10-27.md).
+signed-build inspection passes within the limits below. [Measurements, design and limits](docs/TV-PLAYBACK-DEBUG15-2026-10-27.md).
+
+**Final signed build:** `aa09976e` is pushed. The configured WGT is signed, installed and launched
+on the Q60B; the configured webOS IPK also packages successfully. Instant starts episode 1 and
+manual Next Episode advances to episode 2, whose clock passes 18 seconds with presented-frame
+true, loading false, loading host absent and native overlay hidden. Of 792 observation samples,
+one initial episode-1 handoff sample had frame+spinner while the host still covered playback;
+subsequent episode-2 playback settles without a spinner. This is instrumented verification, not
+fresh physical picture or smoothness acceptance by the maintainer.
+
+The final episode-2 catalogue has 241 sources/15 options: repeated Streamlined renders take
+5.1-9.6 ms and status reads 0.03-0.10 ms. Roomier Classic reaches row 240 of 241 with 20 DOM cards,
+24 px row spacing and a visible 3 px ring; sixteen down/up moves return to zero. Sampled handler
+maximum 16.5 ms. The original 322-source run above remains a separate comparison. Final track
+choice rebuilding (11 audio/84 subtitles) takes 212/160/141 ms and performs zero alias sorts.
+Startup callbacks can still block; end-to-end smoothness, automatic countdown/failover and other
+TV families remain open. Browser checks at 1080p and 720p confirm the chosen fonts/ring and no
+horizontal card overflow. The production JS has no profiling globals.
+
+Debug publication: [run 40545507323](https://github.com/Zokaper/NuvioZWeb/actions/runs/40545507323)
+from `aa09976e` **succeeded**. [Debug 15](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.15)
+published WGT + IPK. The configured signed TV build is separate from CI's optional unconfigured
+fallback, as in prior debug builds. After inspection, the TV app was relaunched normally and
+inspector forwarding removed; no manual settings write. Configured signed WGT SHA-256:
+`3ed6d4cedb1b68122a13ddeadc5d804e56be9a77b4e39504b2825440ad22f688`.
 
 ## Maintainer's focused debug 14 retest passed (2026-10-27)
 

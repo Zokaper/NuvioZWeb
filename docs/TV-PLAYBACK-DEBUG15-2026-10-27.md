@@ -35,11 +35,16 @@ performed **1,377 sorts of the same 65-entry alias table** (487 ms in sorting al
 immutable table. A bounded 512-result cache reuses normalized text results separately for first-match and
 unique-match inference, including ambiguous results. The upstream inference functions retain
 their matching and ambiguity rules.
-Subtitle-language parity covers the real normalization, grouping and startup matching paths.
+Final installed-build rebuilding with 11 audio/84 subtitle choices takes **212/160/141 ms**,
+with **zero sorts** in the three repetitions. Subtitle-language parity covers the real
+normalization, grouping and startup matching paths.
 
 Native open/stop/audio-selection calls and track callbacks still need their own distinction from
 these avoided calculations. The long startup task is not attributed entirely to native code or
-claimed eliminated by this report. Final signed-build observations belong in `../STATUS.md`.
+claimed eliminated by this report. Final signed-build observations are in `../STATUS.md`: Instant
+reaches episode 2 with an advancing clock and settled loading; the final 241-source roomier
+Classic check reaches its last row with a 20-card window and a visible three-pixel focus ring.
+The final sampled D-pad maximum is 16.5 ms; this is distinct from the earlier 322-source sample.
 
 ## Classic, chosen by the maintainer
 
