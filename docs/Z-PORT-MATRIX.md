@@ -25,6 +25,13 @@ Last updated 2026-10-27.
 > reach real video and verify continuity/motion; maintainer smoothness acceptance remains open.
 > Initial calculation and native startup stalls remain. See `docs/TV-PERFORMANCE-2026-10-27.md`.
 >
+> **Maintainer's debug 13 test:** Classic playback, loading Back and Details/audio work. Classic's
+> oversized source list is deferred by request. Instant still stutters between loading stages;
+> Streamlined freezes before its panel. Instant Next Episode enters a player with a throbber,
+> but reopening resumes at 53 seconds. Debug 14 addresses cooperative calculation, native polling
+> and loading-state retirement; see the live handoff for actual installation/verification. Full
+> mode/failover/countdown acceptance remains open.
+>
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
 > AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a

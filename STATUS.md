@@ -7,11 +7,35 @@ Last updated: 2026-10-27
 | Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                                                                               |
 | Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                                                                              |
 | Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                                                                                          |
-| Debug counter        | `DEBUG_BUILD=13`; [debug-v1.2.9-z1.13](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.13) published (WGT + IPK). Configured signed production WGT installed and instrumented on the Q60B, 2026-10-27.                                                 |
+| Debug counter        | `DEBUG_BUILD=14`; configured signed production WGT installed/launched on the Q60B, 2026-10-27. Publication pending final verification.                                                                                                                                   |
 | Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.                                                               |
 | Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                                                                                       |
-| Verified             | `npm run test:z` **459/459**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
-| **Not** verified     | First maintainer test of installed debug 12 reported loading stutter and player issues (below). Full mode/failover/next-episode acceptance is not established; early Tizen and webOS remain open. Keep spaced, combined TV test chunks.                                  |
+| Verified             | `npm run test:z` **468/468**; browser checks cover real measured transfers, all three modes, six-resolution safe-area fit, D-pad, real HTTP/HTML/placeholder failover, duplicate URLs and coordinated next-episode playback; lint, format, build and both packages pass. |
+| **Not** verified     | Debug 13 maintainer test confirms Classic playback, loading Back and Details/audio; stage stutter and Instant next-episode throbber reported. Debug 14 retest, full failover/countdown, early Tizen and webOS acceptance remain open.                                    |
+
+## Maintainer's debug 13 test and follow-up (2026-10-27)
+
+The maintainer has now tested the installed Q60B build. Instant stutters between loading stages
+and several times after selection. Streamlined works but freezes between Play and its panel.
+Classic plays correctly; its oversized source text/layout is explicitly deferred to UI polish.
+Back during loading works. Details and audio menus are good in this pass. Manual Next Episode
+in **Instant** enters the player with a persistent throbber; reopening the episode resumes at
+53 seconds, suggesting hidden/covered playback rather than a dead source. Automatic countdown,
+failover and other TV families are not accepted by this report.
+
+Debug 14 follow-up: cooperative source parsing/ranking, shared native timeline sampling,
+and clearing the player's loading state when its first-frame/audio/restore gates are satisfied.
+Actual Q60B comparison on 322 sources: old synchronous calculation 2127 ms; new calculation
+2869 ms elapsed over 178 turns, longest 37.4 ms, with identical options and source ordering.
+This improves responsiveness, not total lookup time. A short original playback sample made
+1494 current-time and 1494 duration calls; the shared-sample comparison sharply reduces native
+calls. The episode-switch inspection caught advancing playback with loading still true, but
+did not reproduce a persistent spinner. Do not claim the maintainer's complete symptom fixed
+until installed-build checks and a later combined maintainer test establish it.
+
+PC: 468/468 tests pass, including pending catalogue/cancellation, stable cooperative sorting,
+native-sample invalidation on episode/prepare/seek, and first-frame loading-state retirement.
+Configured production build, lint, formatting, browser loading checks and both platform packages pass. The signed WGT is installed/launched; publication follows final device verification. [Details and limits](docs/TV-PLAYBACK-DEBUG14-2026-10-27.md).
 
 ## Loading stutter and playback motion (2026-10-27, debug 13)
 

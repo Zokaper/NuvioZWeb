@@ -24,6 +24,7 @@ import { createSourceFacts, resolutionHeight } from "../sources/sourceFacts.js";
 import { isLanguageWatchable } from "../sources/sourceRanking.js";
 import { isTorrentStream, playableDirectUrl } from "../sources/streamTraits.js";
 import { LANGUAGE_STRICTNESS } from "./playbackSelectionContext.js";
+import { cooperativeSort } from "./cooperativeSort.js";
 
 /** Which band of its resolution a row is, on an **absolute** scale. */
 export const QUALITY_VARIANT = {
@@ -348,7 +349,13 @@ function rankingFor(resolution, context) {
     (entry) => (entry.isPlausible ? 0 : 1),
     (entry) => (isTorrentStream(entry.candidate.stream) ? 1 : 0),
     (entry) => (entry.candidate.facts.isDebridReady === true ? 0 : 1)
-  ];
+  ].map((read) => {
+    const values = new Map();
+    return (entry) => {
+      if (!values.has(entry)) values.set(entry, read(entry));
+      return values.get(entry);
+    };
+  });
 
   return (a, b) => {
     for (const key of leadingKeys) {
@@ -391,8 +398,8 @@ function credibleBitrate(entry) {
   return entry.isPlausible ? entry.bitrateMbps : null;
 }
 
-function optionsForBucket(resolution, entries, context) {
-  const ranked = [...entries].sort(rankingFor(resolution, context));
+function optionsForBucket(resolution, entries, context, prepared = null) {
+  const ranked = prepared ?? [...entries].sort(rankingFor(resolution, context));
   // Banded on measured sources alone. A source that reported no size has no figure to be banded
   // by, and 0.0 is not that figure - treating it as one would mint a "Low" row whose only occupant
   // is a file nobody knows the size of. They join the lowest occupied band instead.
@@ -495,7 +502,7 @@ function optionsForBucket(resolution, entries, context) {
  * season-pack case showed no bandwidth figure and no connection meter rather than a warning. The
  * ceiling was protecting the label while the pick walked straight past it.
  */
-function bestAvailable(measured, topResolution, context) {
+function bestAvailable(measured, topResolution, context, prepared = null) {
   return {
     id: BEST_ID,
     resolution: null,
@@ -504,17 +511,13 @@ function bestAvailable(measured, topResolution, context) {
     representativeBitrateMbps: null,
     isEstimateApproximate: false,
     representativeSizeBytes: null,
-    candidates: [...measured]
-      .sort(rankingFor(topResolution, context))
-      .map((entry) => entry.candidate)
+    candidates: (prepared ?? [...measured].sort(rankingFor(topResolution, context))).map(
+      (entry) => entry.candidate
+    )
   };
 }
 
-export function buildQualityOptions(candidates, context) {
-  if (!candidates || candidates.length === 0) {
-    return [];
-  }
-
+function qualityBuckets(candidates, context) {
   const allMeasured = candidates.map((candidate) => measure(candidate, context));
 
   // The user's own ceiling, applied here so **Best available honours it too**. That card is the
@@ -547,16 +550,35 @@ export function buildQualityOptions(candidates, context) {
     buckets.get(entry.resolution).push(entry);
   });
 
-  const derived = [...buckets.entries()]
-    .sort((a, b) => (resolutionHeight(b[0]) ?? 0) - (resolutionHeight(a[0]) ?? 0))
-    .flatMap(([resolution, entries]) => optionsForBucket(resolution, entries, context));
+  const ordered = [...buckets.entries()].sort(
+    (a, b) => (resolutionHeight(b[0]) ?? 0) - (resolutionHeight(a[0]) ?? 0)
+  );
+  return { measured, ordered, topResolution: ordered[0]?.[0] ?? null };
+}
 
-  const topResolution =
-    [...buckets.keys()].sort(
-      (a, b) => (resolutionHeight(b) ?? 0) - (resolutionHeight(a) ?? 0)
-    )[0] ?? null;
+export function buildQualityOptions(candidates, context) {
+  if (!candidates?.length) return [];
+  const { measured, ordered, topResolution } = qualityBuckets(candidates, context);
+  const derived = ordered.flatMap(([resolution, entries]) =>
+    optionsForBucket(resolution, entries, context)
+  );
 
   return [bestAvailable(measured, topResolution, context), ...derived];
+}
+
+export async function prepareQualityOptions(candidates, context, scheduling) {
+  if (!candidates.length) return [];
+  const { measured, ordered, topResolution } = qualityBuckets(candidates, context);
+  const derived = [];
+  for (const [resolution, entries] of ordered) {
+    const sorted = await cooperativeSort(entries, rankingFor(resolution, context), scheduling);
+    if (sorted == null) return null;
+    derived.push(...optionsForBucket(resolution, entries, context, sorted));
+  }
+  const sorted = await cooperativeSort(measured, rankingFor(topResolution, context), scheduling);
+  return sorted == null
+    ? null
+    : [bestAvailable(measured, topResolution, context, sorted), ...derived];
 }
 
 /**

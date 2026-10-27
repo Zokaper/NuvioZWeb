@@ -13,7 +13,8 @@ import {
   cancelTransition,
   updateTransition
 } from "../../core/z/playback/playerNextEpisodeTransition.js";
-import { buildQualityOptions, stickyAffordable } from "../../core/z/playback/playbackQualityOptions.js";
+import { stickyAffordable } from "../../core/z/playback/playbackQualityOptions.js";
+import { createPlaybackOptionsCache } from "../../core/z/playback/playbackOptionsCache.js";
 import {
   selectSource,
   SELECTION_RESULT,
@@ -168,10 +169,8 @@ export function withZNextEpisodePlayback(vanilla, contextOf) {
           return await this.zCommitEpisode(work, selected, []);
         }
         work.streams = result;
-        work.options = buildQualityOptions(
-          result.map((stream, addonOrder) => ({ stream, facts: extractSourceFacts(stream), addonOrder })),
-          context
-        );
+        work.options = await createPlaybackOptionsCache().prepare(result, context, { isCurrent: () => this.zEpisodeCurrent(request) });
+        if (!this.zEpisodeCurrent(request) || work.options == null) return false;
         work.connection = this.zEpisodeConnection = createConnectionSession({
           target: () => (work.options[0] ? probeTarget(work.options[0], context) : null),
           onChange: (state) => {

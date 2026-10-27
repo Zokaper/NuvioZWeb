@@ -65,8 +65,18 @@ export const RELEASE_AUDIO_CHANNELS = [
 
 const AUDIO_CHANNEL_BY_NAME = new Map(RELEASE_AUDIO_CHANNELS.map((entry) => [entry.name, entry]));
 
-function escapeRegex(value) {
-  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function containsBoundedToken(text, token, digitsOnly = false) {
+  const isWord = (index) => {
+    const code = text.charCodeAt(index);
+    return (code >= 48 && code <= 57) || (!digitsOnly && code >= 97 && code <= 122);
+  };
+  let from = 0;
+  for (;;) {
+    const at = text.indexOf(token, from);
+    if (at < 0) return false;
+    if (!isWord(at - 1) && !isWord(at + token.length)) return true;
+    from = at + 1;
+  }
 }
 
 function joinLower(structuredValues, text) {
@@ -93,8 +103,7 @@ export function hasReleaseToken(text, token) {
   if (!haystack.length || !needle.length) {
     return false;
   }
-  const pattern = new RegExp(`(^|[^a-z0-9])${escapeRegex(needle.toLowerCase())}([^a-z0-9]|$)`);
-  return pattern.test(haystack.toLowerCase());
+  return containsBoundedToken(haystack.toLowerCase(), needle.toLowerCase());
 }
 
 /**
@@ -106,7 +115,7 @@ export function hasReleaseToken(text, token) {
  * not read as surround.
  */
 function hasChannelToken(text, token) {
-  return new RegExp(`(^|[^0-9])${escapeRegex(token)}([^0-9]|$)`).test(text);
+  return containsBoundedToken(text, token, true);
 }
 
 const DOLBY_VISION_REGEX = /(^|[^a-z0-9])(dv|dovi|dolby[ ._-]?vision)([^a-z0-9]|$)/;

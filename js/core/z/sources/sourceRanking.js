@@ -459,15 +459,30 @@ export function comparator({
   addonOrderOf,
   stableUrlOf
 }) {
-  const descending = (read) => (a, b) => {
-    const left = read(a);
-    const right = read(b);
-    return left === right ? 0 : left > right ? -1 : 1;
+  // A comparator belongs to one ranking pass. Derive each key once per candidate,
+  // rather than reparsing language/range preferences on every sort comparison.
+  const cached = (read) => {
+    const values = new Map();
+    return (item) => {
+      if (!values.has(item)) values.set(item, read(item));
+      return values.get(item);
+    };
   };
-  const ascending = (read) => (a, b) => {
-    const left = read(a);
-    const right = read(b);
-    return left === right ? 0 : left < right ? -1 : 1;
+  const descending = (read) => {
+    read = cached(read);
+    return (a, b) => {
+      const left = read(a);
+      const right = read(b);
+      return left === right ? 0 : left > right ? -1 : 1;
+    };
+  };
+  const ascending = (read) => {
+    read = cached(read);
+    return (a, b) => {
+      const left = read(a);
+      const right = read(b);
+      return left === right ? 0 : left < right ? -1 : 1;
+    };
   };
 
   const keys = [

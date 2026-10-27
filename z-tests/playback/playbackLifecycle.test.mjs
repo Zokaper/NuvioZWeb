@@ -160,6 +160,45 @@ test("cleanup cancels a queued retry and prevents late resolver work from revivi
   assert.equal(zHarness.loading, null);
 });
 
+test("an advancing next episode retires the player's spinner as well as the shared loading host", async (ctx) => {
+  ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
+  const { screen, params } = player();
+  await screen.mount(params);
+  let presentations = 0;
+  screen.hasPresentedPlaybackFrame = true;
+  screen.loadingVisible = true;
+  let gateReady = false;
+  screen.isStartupLogoDismissReady = () => gateReady;
+  screen.presentStartedPlayback = () => {
+    presentations++;
+    screen.loadingVisible = false;
+  };
+  screen.zPlaybackTick();
+  assert.equal(presentations, 0, "audio/restore startup gates still belong to the player");
+  gateReady = true;
+  screen.zPlaybackTick();
+  assert.equal(screen.loadingVisible, false);
+  assert.equal(zHarness.loading, null);
+  screen.zPlaybackTick();
+  assert.equal(presentations, 1);
+  screen.cleanup();
+});
+
+test("player loading ticks reuse facts but a prepared source replacement and a new mount refresh them", async (ctx) => {
+  ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
+  const { screen, params } = player();
+  await screen.mount(params);
+  const raw = { id: "a", name: "1080p WEB-DL", behaviorHints: { videoSize: 1e9 } };
+  const first = screen.zFacts({ raw });
+  assert.equal(screen.zFacts({ raw }), first);
+  const prepared = screen.zFacts({ raw: { ...raw, behaviorHints: { videoSize: 2e9 } } });
+  assert.equal(prepared.sizeBytes, 2e9);
+  screen.cleanup();
+  await screen.mount(params);
+  assert.notEqual(screen.zFacts({ raw }), first);
+  screen.cleanup();
+});
+
 test("a resumed dead link is timed against its resume baseline, and first-frame presentation removes the host", async (ctx) => {
   ctx.mock.timers.enable({ apis: ["setTimeout", "setInterval", "Date"], now: 1000 });
   const { screen, params } = player();
@@ -300,6 +339,62 @@ test("an option that vanished while sources settled uncovers the list rather tha
   });
   screen.zTryQualitySelection();
   assert.equal(reason, "quality unavailable");
+  zHarness.router.getCurrent = () => "player";
+});
+
+test("Instant waits for the complete cooperative calculation instead of treating pending options as no match", async () => {
+  zHarness.router.getCurrent = () => "stream";
+  const screen = withZStreamPlayback({ cleanup() {} });
+  let launches = 0;
+  Object.assign(screen, {
+    zDecision: { key: "auto_pick" },
+    zContext: createSelectionContext(),
+    streams: Array.from({ length: 20 }, (_, index) => ({
+      id: String(index),
+      url: `https://example.invalid/${index}.mp4`,
+      name: "1080p WEB-DL"
+    })),
+    streamSearchCompleted: true,
+    zProbeStarted: true,
+    zConnection: { state: () => ({ decision: true, mbps: 20 }), dispose() {} },
+    params: {},
+    render() {},
+    zLaunchAutomatic() {
+      launches++;
+      this.zNavigating = true;
+    }
+  });
+  screen.zTryQualitySelection();
+  assert.equal(launches, 0);
+  while (screen.zQualityJob) await new Promise((resolve) => setTimeout(resolve, 1));
+  assert.equal(launches, 1);
+  screen.cleanup();
+  zHarness.router.getCurrent = () => "player";
+});
+
+test("a newer discovery snapshot replaces pending preparation and route cleanup cancels its publication", async () => {
+  zHarness.router.getCurrent = () => "stream";
+  const screen = withZStreamPlayback({ cleanup() {} });
+  let renders = 0;
+  Object.assign(screen, {
+    zContext: createSelectionContext(),
+    streams: [{ id: "old", name: "1080p" }],
+    render() {
+      renders++;
+    },
+    zTryQualitySelection() {}
+  });
+  screen.zOptions();
+  screen.streams = [{ id: "new", name: "720p" }];
+  screen.zOptions();
+  while (screen.zQualityJob) await new Promise((resolve) => setTimeout(resolve, 1));
+  assert.equal(renders, 1);
+  assert.equal(screen.zOptions()[0].candidates[0].stream.id, "new");
+  screen.streams = [{ id: "after-back", name: "2160p" }];
+  screen.zOptions();
+  screen.cleanup();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(renders, 1);
   zHarness.router.getCurrent = () => "player";
 });
 

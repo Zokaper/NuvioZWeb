@@ -595,8 +595,15 @@ function containsReleaseToken(text, token) {
   }
 }
 
+const RELEASE_WORD_CHARACTER = /[\p{L}\p{N}]/u;
 function isReleaseWordChar(character) {
-  return character != null && /[\p{L}\p{N}]/u.test(character);
+  if (character == null) return false;
+  const code = character.charCodeAt(0);
+  // Almost every filename is ASCII. Avoid constructing/testing the transpiled Unicode
+  // character table for every character and every language token on older TV engines.
+  if (code < 128)
+    return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122);
+  return RELEASE_WORD_CHARACTER.test(character);
 }
 
 /**

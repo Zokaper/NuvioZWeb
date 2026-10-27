@@ -46,6 +46,7 @@ export function withZPlayerPlayback(vanilla) {
         this.zExhausted = false;
         this.zRetrying = false;
         this.zManualLeaving = false;
+        this.zFactsCache = new WeakMap();
         this.zResetWatchdog(params.resumePositionMs);
         const mounted = vanilla.mount.call(this, params, navigation);
         if (this.zLaunch) this.zWatchTimer = setInterval(() => this.zPlaybackTick(), 250);
@@ -63,6 +64,13 @@ export function withZPlayerPlayback(vanilla) {
         this.zBaselineMs = Number(baselineMs) || 0;
         this.zHadFrame = false;
       },
+      zFacts(candidate) {
+        const record = candidate?.raw || candidate;
+        if (!record) return extractSourceFacts(record);
+        this.zFactsCache ??= new WeakMap();
+        if (!this.zFactsCache.has(record)) this.zFactsCache.set(record, extractSourceFacts(record));
+        return this.zFactsCache.get(record);
+      },
       zPlaybackTick() {
         if (!this.zLaunch || !this.playerRouteActive || Router.getCurrent() !== "player" || this.zManualLeaving) return;
         const current = this.getCurrentStreamCandidate();
@@ -76,13 +84,17 @@ export function withZPlayerPlayback(vanilla) {
         }
         this.zObserveThroughput(current);
         if (this.hasPresentedPlaybackFrame && !this.zRetrying && !this.zExhausted) {
+          // Episode remounts can leave vanilla's completion timer behind frequent native
+          // events. Retire its loading state along with our host once its own gates pass;
+          // otherwise the uncovered player can still show a spinner over advancing video.
+          if (this.loadingVisible && this.isStartupLogoDismissReady?.()) this.presentStartedPlayback();
           this.zHadFrame = true;
           this.zProbeController?.abort();
           hidePlaybackLoading({ afterFirstFrame: true });
           if (this.zLaunch.mode === "INSTANT" && !this.zInstantAnnounced) {
             this.zInstantAnnounced = true;
             this.zInstantChangeUntil = Date.now() + 6000;
-            this.showAspectToast?.(t("playback_instant_now_playing", [describe(extractSourceFacts(current?.raw || current))]));
+            this.showAspectToast?.(t("playback_instant_now_playing", [describe(this.zFacts(current))]));
             if (this.uiRefs?.aspectToast) {
               clearTimeout(this.aspectToastTimer);
               this.aspectToastTimer = setTimeout(() => {
@@ -104,7 +116,7 @@ export function withZPlayerPlayback(vanilla) {
         const entry = armedEntry(this.zChain);
         showPlaybackLoading({
           params: this.params,
-          facts: candidate ? extractSourceFacts(candidate.raw || candidate) : null,
+          facts: this.zFacts(candidate),
           context: this.zLaunch.context,
           step: !this.activePlaybackUrl ? "resolving" : "starting",
           attempt: chainAttempt(this.zChain),
@@ -290,7 +302,7 @@ export function withZPlayerPlayback(vanilla) {
         const candidate = options.sourceCandidate || this.getCurrentStreamCandidate();
         const token = this.playerMountToken;
         const controller = (this.zProbeController = playbackCancellation());
-        const facts = extractSourceFacts(candidate?.raw || candidate);
+        const facts = this.zFacts(candidate);
         void probeSource(
           url,
           { ...proxyHeaders(candidate), ...this.getCurrentStreamRequestHeaders?.(candidate), ...context.requestHeaders },
@@ -324,7 +336,7 @@ export function withZPlayerPlayback(vanilla) {
           if (video.currentTime >= video.buffered.start(index) && video.currentTime <= video.buffered.end(index))
             buffered = video.buffered.end(index);
         if (buffered == null) return;
-        const facts = extractSourceFacts(candidate?.raw || candidate);
+        const facts = this.zFacts(candidate);
         const rate = bitrateMbps({ stream: candidate, facts }, this.zLaunch.context);
         const outcome = observeThroughput(
           this.zMeter,
@@ -349,6 +361,7 @@ export function withZPlayerPlayback(vanilla) {
         hidePlaybackLoading();
         this.zLaunch = null;
         this.zChain = null;
+        this.zFactsCache = null;
         return vanilla.cleanup.call(this);
       }
     },

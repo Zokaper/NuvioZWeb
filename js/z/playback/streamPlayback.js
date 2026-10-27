@@ -21,6 +21,7 @@ import { streamRouteSurface, createSurfaceInputs, STREAM_ROUTE_SURFACE, playback
 import { renderQualitySheet, moveQualityFocus } from "./qualitySheet.js";
 import { showPlaybackLoading, hidePlaybackLoading, t } from "./playbackPresentation.js";
 import { createConnectionSession } from "./playbackNetwork.js";
+import { playbackPaint } from "./playbackPaint.js";
 
 const back = (event) => [8, 27, 10009, 461].includes(Number(event?.keyCode));
 const select = (event) => [13, 23, 66].includes(Number(event?.keyCode));
@@ -67,6 +68,7 @@ export function withZStreamPlayback(vanilla) {
       );
       this.zContext = selectionContext(params);
       this.zQualityOptions = createPlaybackOptionsCache();
+      this.zQualityJob = null;
       this.zSelectionStartedAt = Date.now();
       this.zNavigating = false;
       this.zConnection = createConnectionSession({
@@ -87,6 +89,12 @@ export function withZStreamPlayback(vanilla) {
     },
     zIsAutomaticRoute() {
       return [PLAYBACK_ROUTE_DECISION.SHOW_QUALITY_SHEET, PLAYBACK_ROUTE_DECISION.AUTO_PICK].includes(this.zDecision?.key);
+    },
+    async loadStreams(...args) {
+      const token = this.loadToken;
+      if (this.zIsAutomaticRoute() && !this.zManual) await playbackPaint();
+      if (token !== this.loadToken || Router.getCurrent() !== "stream") return;
+      return vanilla.loadStreams.apply(this, args);
     },
     zIsInstantRoute() {
       return this.zDecision?.key === PLAYBACK_ROUTE_DECISION.AUTO_PICK;
@@ -109,10 +117,36 @@ export function withZStreamPlayback(vanilla) {
     },
     zOptions() {
       this.zQualityOptions ??= createPlaybackOptionsCache();
-      return this.zQualityOptions(this.streams || [], this.zContext);
+      const streams = this.streams || [];
+      if (this.zQualityOptions.matches(streams, this.zContext)) return this.zQualityOptions(streams, this.zContext);
+      const pending = this.zQualityJob;
+      if (
+        pending?.context === this.zContext &&
+        pending.streams.length === streams.length &&
+        pending.streams.every((stream, index) => stream === streams[index])
+      )
+        return [];
+      const job = { streams: streams.slice(), context: this.zContext };
+      this.zQualityJob = job;
+      void this.zQualityOptions
+        .prepare(job.streams, job.context, { isCurrent: () => this.zQualityJob === job })
+        .then((options) => {
+          if (this.zQualityJob !== job || options == null) return;
+          this.zQualityJob = null;
+          if (Router.getCurrent() !== "stream" || this.zNavigating || this.zManual) return;
+          this.render();
+          this.zTryQualitySelection();
+        })
+        .catch(() => {
+          if (this.zQualityJob !== job || this.zManual || this.zNavigating) return;
+          this.zQualityJob = null;
+          this.zChooseManual("source calculation failed", t("playback_quality_no_match"));
+        });
+      return [];
     },
     render() {
       this.cancelScheduledRender();
+      if (this.zIsAutomaticRoute() && !this.zManual) this.zOptions();
       this.zEnsureConnection();
       const surface = this.zSurface();
       if (surface === STREAM_ROUTE_SURFACE.SOURCE_LIST) return vanilla.render.call(this);
@@ -135,7 +169,7 @@ export function withZStreamPlayback(vanilla) {
         title: this.params?.itemTitle || this.params?.playerTitle,
         backdrop: this.params?.backdrop || this.params?.background,
         focusId: this.zFocusId,
-        loading: !this.streamSearchCompleted,
+        loading: !this.streamSearchCompleted || !this.zQualityOptions.matches(this.streams || [], this.zContext),
         busy: Boolean(this.zPendingQuality),
         uncached: Boolean(this.zUncached),
         connection: this.zConnection?.state()
@@ -147,6 +181,7 @@ export function withZStreamPlayback(vanilla) {
         !this.zIsAutomaticRoute() ||
         this.zManual ||
         this.zNavigating ||
+        !this.zQualityOptions?.matches(this.streams || [], this.zContext) ||
         (!(this.streams || []).length && !this.streamSearchCompleted)
       )
         return;
@@ -229,6 +264,8 @@ export function withZStreamPlayback(vanilla) {
         else this.render();
         return;
       }
+      this.zOptions();
+      if (this.zQualityOptions && !this.zQualityOptions.matches(this.streams || [], this.zContext)) return;
       if (this.zIsInstantRoute() && !this.zConnection?.state().decision) return;
       clearInterval(this.zSelectionTimer);
       const option = this.zIsInstantRoute()
@@ -278,10 +315,17 @@ export function withZStreamPlayback(vanilla) {
         else showPlaybackLoading(loading);
       }, 250);
       showPlaybackLoading(loading);
-      void this.playStream(winner.stream.id).catch(() => {
-        this.zNavigating = false;
-        this.zChooseManual("launch failed", t("playback_quality_no_match"));
-      });
+      const launch = this.zAutomaticPlayback;
+      void playbackPaint()
+        .then(() => {
+          if (!this.zNavigating || this.zAutomaticPlayback !== launch || Router.getCurrent() !== "stream") return;
+          return this.playStream(winner.stream.id);
+        })
+        .catch(() => {
+          if (this.zAutomaticPlayback !== launch) return;
+          this.zNavigating = false;
+          this.zChooseManual("launch failed", t("playback_quality_no_match"));
+        });
     },
     onKeyDown(event) {
       if (this.zSurface() === STREAM_ROUTE_SURFACE.SOURCE_LIST) return vanilla.onKeyDown.call(this, event);
@@ -328,6 +372,7 @@ export function withZStreamPlayback(vanilla) {
       clearInterval(this.zSelectionTimer);
       this.zConnection?.dispose();
       this.zQualityOptions = null;
+      this.zQualityJob = null;
       if (!this.zAutomaticPlayback || !this.zNavigating) hidePlaybackLoading();
       return vanilla.cleanup.call(this);
     }

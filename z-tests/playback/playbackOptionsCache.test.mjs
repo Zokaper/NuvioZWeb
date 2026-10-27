@@ -47,3 +47,37 @@ test("discovery, same-length prepared replacements and changed preferences produ
   assertFresh(context);
   assert.deepEqual(cache([], context), []);
 });
+
+test("preparing a large catalogue yields between facts and preserves the synchronous ranking", async () => {
+  const streams = Array.from({ length: 60 }, (_, index) =>
+    source(String(index), index % 2 ? 1080 : 720, (index + 1) * 1e8)
+  );
+  const context = createSelectionContext();
+  const cache = createPlaybackOptionsCache();
+  let turns = 0,
+    elapsed = 0;
+  const result = await cache.prepare(streams, context, {
+    yieldTask: async () => {
+      turns++;
+    },
+    now: () => elapsed++
+  });
+  assert.ok(turns > 1, "catalogue work must release the main thread");
+  assert.deepEqual(result, uncached(streams, context));
+  assert.equal(cache(streams, context), result);
+});
+
+test("Back or a changed source snapshot cancels preparation before it can publish stale options", async () => {
+  const cache = createPlaybackOptionsCache(),
+    context = createSelectionContext();
+  const streams = [source("a", 1080, 1e9)];
+  let active = true;
+  const result = await cache.prepare(streams, context, {
+    isCurrent: () => active,
+    yieldTask: async () => {
+      active = false;
+    }
+  });
+  assert.equal(result, null);
+  assert.equal(cache.matches(streams, context), false);
+});

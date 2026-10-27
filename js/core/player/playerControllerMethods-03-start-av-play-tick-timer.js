@@ -1,4 +1,5 @@
 import * as internals from "./playerController.js";
+import { shouldRefreshAvPlayTimeline } from "../../z/playback/avplayTimeline.js";
 
 export function createPlayerControllerMethods03() {
   const { logTizenAvPlayDebug } = internals;
@@ -205,6 +206,7 @@ export function createPlayerControllerMethods03() {
       if (!this.isUsingAvPlay() || this.avplaySeekInFlight) {
         return;
       }
+      if (!shouldRefreshAvPlayTimeline(this)) return;
       const avplay = this.getAvPlay();
       if (!avplay) {
         return;

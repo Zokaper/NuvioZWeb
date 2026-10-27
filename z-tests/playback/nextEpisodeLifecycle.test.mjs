@@ -191,6 +191,8 @@ test("automatic Streamlined searches with the old episode intact, then counts do
   await screen.mount(params);
   const pending = screen.playNextEpisode();
   await pump();
+  ctx.mock.timers.tick(0);
+  await pump();
   assert.equal(screen.zEpisodeTransition.phase, "COUNTDOWN");
   assert.equal(screen.params.videoId, "e1");
   assert.equal(screen.nextEpisodeCardCountdownSec, 3);
@@ -210,6 +212,8 @@ test("manual Instant promotes the active automatic countdown instead of fetching
   });
   await screen.mount(params);
   const pending = screen.playNextEpisode();
+  await pump();
+  ctx.mock.timers.tick(0);
   await pump();
   assert.equal(screen.zEpisodeTransition.phase, "COUNTDOWN");
   await screen.playNextEpisode({ userInitiated: true });
