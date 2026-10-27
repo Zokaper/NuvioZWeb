@@ -52,6 +52,9 @@ Code `eefeb669` is pushed. Debug 14 publication was dispatched in
 Canonical handoff/P12/P14 and the new upstream sampling seam are committed as `877fafc0c`, pushed
 to `nuvio-z` main and `codex/tv-step-3-2-docs`. Run succeeded and [debug 14](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.14) published WGT + IPK. Public CI packages use the unconfigured fallback; the configured signed local build is installed on the Q60B.
 
+Local `gh` defaults to upstream `NuvioMedia/NuvioTVSmart`: use `-R Zokaper/NuvioZWeb` or an
+explicit `repos/Zokaper/NuvioZWeb/...` API path. Dispatch used workflow id `340695489`.
+
 ## Loading stutter and playback motion (2026-10-27, debug 13)
 
 The maintainer clarified that overall TV performance is good; the priority is smooth transitions
