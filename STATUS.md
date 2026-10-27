@@ -2,16 +2,37 @@
 
 Last updated: 2026-10-27
 
-|                      |                                                                                                                                                                                                              |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                   |
-| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                  |
-| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                              |
-| Debug counter        | `DEBUG_BUILD=16`; configured signed WGT installed/launched normally on Q60B. [debug-v1.2.9-z1.16](https://github.com/Zokaper/NuvioZWeb/releases/tag/debug-v1.2.9-z1.16) published WGT + IPK from `dda418c1`. |
-| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending.   |
-| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                           |
-| Verified             | `npm run test:z` **493/493**; focused Samsung/subtitle-language and loading-host browser checks pass. Debug 16 startup measurements and their limits are below.                                              |
-| Acceptance           | Maintainer accepts residual stutter for now. Q60B automatic-origin countdown/Back and controlled failover pass; natural autoplay and other TV families remain open.                                          |
+|                      |                                                                                                                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Active branch        | `claude/phase-10-trunk`, from vanilla `1.2.9` (`c8674f2d`)                                                                                                                                                 |
+| Version in the files | `1.2.9-z1` (`package.json`; the platform manifests get the numeric `1.2.9`)                                                                                                                                |
+| Tizen identity       | package `NuvioZTV01`, app `NuvioZTV01.NuvioZ`, name **Nuvio Z** (webOS still `space.nuvio.webos` until Stage 7)                                                                                            |
+| Debug counter        | `DEBUG_BUILD=17`; configured signed WGT installed on Q60B for Home navigation verification; publication pending.                                                                                           |
+| Plan                 | `Nuvio Z/PLAN-phase-10-tv-web-port.md` - Stage 2 playback implemented: Classic / Streamlined / Instant, measured connection, P12 transitions and P16 side probes. Combined hardware acceptance is pending. |
+| Archived             | the 0.3.40-z1 port, tag `z-0.3.40-archive` (was `claude/upstream-doctrine-stage0`); reference only                                                                                                         |
+| Verified             | `npm run test:z` **497/497**; lint and configured Tizen/webOS packaging pass. Q60B Home append measurements and debug 16 playback checks are below.                                                        |
+| Acceptance           | Maintainer accepts residual stutter for now. Q60B automatic-origin countdown/Back and controlled failover pass; natural autoplay and other TV families remain open.                                        |
+
+## Debug 17: bounded Tizen Home catalogue appends (2026-10-27)
+
+The maintainer authorized the Home/navigation performance pass. Q60B profiling found a modern
+Home pagination turn adding 15 cards at once: about 138 ms in the first trace and 63.1 ms in a
+warm same-row comparison. A Z-owned policy limits later Tizen DOM appends to two cards; initial
+row size, provider pages, cached contents/order, load-ahead and lifecycle guards are unchanged.
+Other runtimes retain their existing append size. One new upstream-owned import/call seam is
+recorded in canonical `Docs/PATCH-SURFACE.md`, tagged drop-at-next-sync. No CSS, UI design,
+playback policy or saved setting changed.
+
+497/497 tests and lint pass; configured WGT/IPK package. The signed WGT is installed on the Q60B:
+four observed append turns take 19.8/11.9/10.7/8.8 ms. The 38-key paired-remote navigation sequence
+retains one connected focus, the Home route and no uncaught exceptions. Overall budgets remain
+open: handler p95 29.0 ms, frame-gap p95 41.4 ms, with image/compositing pauses still present.
+The native-focus ordering prototype merely moved layout work and was excluded.
+[Measurements, scope and limits](docs/TV-HOME-DEBUG17-2026-10-27.md).
+Installed-build long traversal reaches card index 95 with 108 mounted cards and 143 cached
+items, after a provider-page extension. Mounted items remain ordered and unique. Details/Back
+restores index 95 with visible focus; 95 left presses return to zero. The earlier 50-card
+round trip also passes. Publication is pending at this checkpoint.
 
 ## Agent's debug 16 playback follow-up (2026-10-27)
 

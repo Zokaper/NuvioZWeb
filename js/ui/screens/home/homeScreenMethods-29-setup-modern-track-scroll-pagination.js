@@ -1,5 +1,6 @@
 import * as internals from "./homeScreenContext.js";
 import { registerHomeDomNodes } from "./homeDomUpdate.js";
+import { homePaginationChunkSize } from "../../../z/home/rowPagination.js";
 
 export function createHomeScreenMethods29() {
   const { Router, catalogRepository, buildModernRowKey, MODERN_HOME_CONSTANTS, HOME_MAX_ITEMS_PER_ROW_DEFAULT, createPosterCardMarkup } =
@@ -66,7 +67,7 @@ export function createHomeScreenMethods29() {
           const layoutPrefs = this.layoutPrefs || {};
           const showPosterLabels = Boolean(layoutPrefs.showPosterLabels !== false);
           const preferLandscape = Boolean(layoutPrefs.modernLandscapePostersEnabled);
-          const chunkSize = Math.max(1, Number(this.getRowItemLimit?.() || HOME_MAX_ITEMS_PER_ROW_DEFAULT));
+          const chunkSize = homePaginationChunkSize(Math.max(1, Number(this.getRowItemLimit?.() || HOME_MAX_ITEMS_PER_ROW_DEFAULT)));
           const appendItemsToTrack = (itemsToAppend = [], startIndex = 0) => {
             if (!itemsToAppend.length || !track.isConnected || this._trackScrollHandlers?.get(track) !== handler) {
               return false;

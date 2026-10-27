@@ -50,6 +50,11 @@ Last updated 2026-10-27.
 > autoplay threshold triggering and other TV families remain open; see
 > `docs/TV-PLAYBACK-DEBUG16-FOLLOWUP-2026-10-27.md` for the exact scope.
 >
+> **Debug 17 Home performance:** a measured Tizen catalogue append is bounded to two cards per
+> later request, retaining initial/provider page sizes, cached order and existing focus behavior.
+> Browser/webOS retain their batch size. Overall navigation/frame budgets remain open; see
+> `docs/TV-HOME-DEBUG17-2026-10-27.md` and the live handoff for installed verification.
+>
 > **TV adaptations:** no downloads, party/metered consent, cellular presets or battery paths.
 > Throughput comes from bounded actual transfers, and from buffered ranges only on HTML players;
 > AVPlay buffer percentages/content bitrate produce no passive rate. No network identity means a
